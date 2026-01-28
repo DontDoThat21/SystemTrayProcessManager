@@ -407,6 +407,12 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IHotkeyConfigurationService, HotkeyConfigurationService>();
                             services.AddSingleton<IActionMappingService, ActionMappingService>();
 
+                            // Register Profile & Automation services
+                            services.AddSingleton<IProfileService, ProfileService>();
+                            services.AddSingleton<ISchedulerService, SchedulerService>();
+                            services.AddSingleton<IStartupService, StartupService>();
+                            services.AddSingleton<IProcessGroupService, ProcessGroupService>();
+
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
 

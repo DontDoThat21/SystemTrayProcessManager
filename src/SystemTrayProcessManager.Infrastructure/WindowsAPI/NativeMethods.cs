@@ -277,37 +277,102 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
                         [return: MarshalAs(UnmanagedType.Bool)]
                         public static partial bool UnhookWindowsHookEx(IntPtr hhk);
 
-                        /// <summary>
-                        /// Passes the hook information to the next hook procedure in the current hook chain.
-                        /// </summary>
-                        /// <param name="hhk">This parameter is ignored.</param>
-                        /// <param name="nCode">The hook code passed to the current hook procedure.</param>
-                        /// <param name="wParam">The wParam value passed to the current hook procedure.</param>
-                        /// <param name="lParam">The lParam value passed to the current hook procedure.</param>
-                        /// <returns>The value returned by the next hook procedure in the chain.</returns>
-                        [LibraryImport("user32.dll", SetLastError = true)]
-                        public static partial IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+                                                /// <summary>
+                                                /// Passes the hook information to the next hook procedure in the current hook chain.
+                                                /// </summary>
+                                                /// <param name="hhk">This parameter is ignored.</param>
+                                                /// <param name="nCode">The hook code passed to the current hook procedure.</param>
+                                                /// <param name="wParam">The wParam value passed to the current hook procedure.</param>
+                                                /// <param name="lParam">The lParam value passed to the current hook procedure.</param>
+                                                /// <returns>The value returned by the next hook procedure in the chain.</returns>
+                                                [LibraryImport("user32.dll", SetLastError = true)]
+                                                public static partial IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
-                        /// <summary>
-                        /// Determines whether a key is up or down at the time the function is called.
-                        /// </summary>
-                        /// <param name="vKey">The virtual-key code.</param>
-                        /// <returns>If the high-order bit is 1, the key is down; otherwise, it is up.</returns>
-                        [LibraryImport("user32.dll")]
-                        public static partial short GetAsyncKeyState(int vKey);
+                                /// <summary>
+                                /// Determines whether a key is up or down at the time the function is called.
+                                /// </summary>
+                                /// <param name="vKey">The virtual-key code.</param>
+                                /// <returns>If the high-order bit is 1, the key is down; otherwise, it is up.</returns>
+                                [LibraryImport("user32.dll")]
+                                public static partial short GetAsyncKeyState(int vKey);
 
-                        /// <summary>
-                        /// Checks if the specified key is currently pressed.
-                        /// </summary>
-                        /// <param name="vKey">The virtual-key code to check.</param>
-                        /// <returns>True if the key is pressed; false otherwise.</returns>
-                        public static bool IsKeyPressed(int vKey)
-                        {
-                            return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+                                /// <summary>
+                                /// Checks if the specified key is currently pressed.
+                                /// </summary>
+                                /// <param name="vKey">The virtual-key code to check.</param>
+                                /// <returns>True if the key is pressed; false otherwise.</returns>
+                                public static bool IsKeyPressed(int vKey)
+                                {
+                                    return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+                                }
+
+                                #endregion
+
+                                    #region User32.dll - Window Position Functions
+
+                                    /// <summary>
+                                    /// Retrieves the dimensions of the bounding rectangle of the specified window.
+                                    /// </summary>
+                                    /// <param name="hWnd">Handle to the window.</param>
+                                    /// <param name="lpRect">Pointer to a RECT structure that receives the screen coordinates.</param>
+                                    /// <returns>True if successful; false otherwise.</returns>
+                                    [DllImport("user32.dll", SetLastError = true)]
+                                    [return: MarshalAs(UnmanagedType.Bool)]
+                                    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+                                    /// <summary>
+                                    /// Moves a window by the specified amount.
+                                    /// </summary>
+                                    /// <param name="hWnd">Handle to the window.</param>
+                                    /// <param name="X">The new X position of the upper-left corner.</param>
+                                    /// <param name="Y">The new Y position of the upper-left corner.</param>
+                                    /// <param name="nWidth">The new width of the window.</param>
+                                    /// <param name="nHeight">The new height of the window.</param>
+                                    /// <param name="bRepaint">Whether to repaint the window.</param>
+                                    /// <returns>True if successful; false otherwise.</returns>
+                                    [DllImport("user32.dll", SetLastError = true)]
+                                    [return: MarshalAs(UnmanagedType.Bool)]
+                                    public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, [MarshalAs(UnmanagedType.Bool)] bool bRepaint);
+
+                                    #endregion
+                                }
+
+                            /// <summary>
+                            /// Defines the coordinates of the upper-left and lower-right corners of a rectangle.
+                            /// </summary>
+                            [StructLayout(LayoutKind.Sequential)]
+                            internal struct RECT
+                            {
+                                /// <summary>
+                                /// The x-coordinate of the upper-left corner of the rectangle.
+                                /// </summary>
+                                public int Left;
+
+                                /// <summary>
+                                /// The y-coordinate of the upper-left corner of the rectangle.
+                                /// </summary>
+                                public int Top;
+
+                                /// <summary>
+                                /// The x-coordinate of the lower-right corner of the rectangle.
+                                /// </summary>
+                                public int Right;
+
+                                /// <summary>
+                                /// The y-coordinate of the lower-right corner of the rectangle.
+                                /// </summary>
+                                public int Bottom;
+
+                                /// <summary>
+                                /// Gets the width of the rectangle.
+                                /// </summary>
+                                public readonly int Width => Right - Left;
+
+                                /// <summary>
+                                /// Gets the height of the rectangle.
+                                /// </summary>
+                                public readonly int Height => Bottom - Top;
+                            }
                         }
-
-                        #endregion
-                    }
-                }
 
 
