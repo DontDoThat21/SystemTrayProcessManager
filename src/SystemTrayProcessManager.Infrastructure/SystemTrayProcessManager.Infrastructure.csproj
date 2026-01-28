@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -7,6 +7,7 @@
     <RootNamespace>SystemTrayProcessManager.Infrastructure</RootNamespace>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,10 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SystemTrayProcessManager.Core\SystemTrayProcessManager.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="WindowsAPI\" />
   </ItemGroup>
 
 </Project>

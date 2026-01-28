@@ -343,6 +343,8 @@ namespace SystemTrayProcessManager.UI
                             // Register Infrastructure services
                             services.AddSingleton<IIconExtractor, IconExtractor>();
                             services.AddSingleton<IProcessService, ProcessMonitorService>();
+                            services.AddSingleton<IWindowService, WindowManipulationService>();
+                            services.AddSingleton<IAudioService, AudioManagerService>();
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
@@ -352,8 +354,6 @@ namespace SystemTrayProcessManager.UI
 
                             // TODO: Register additional services from Infrastructure project as they are created
                             // Example:
-                            // services.AddSingleton<IWindowService, WindowManipulationService>();
-                            // services.AddSingleton<IAudioService, AudioManagerService>();
                             // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
 
                             // TODO: Register ViewModels as they are created

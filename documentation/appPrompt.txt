@@ -1,12 +1,12 @@
-Phase 2, Task 3: Process Discovery & Monitoring is complete.
+Phase 2, Task 2.3 Audio Control Integration is complete.
 ​
-Begin implementing Task 4: Window Manipulation Features
+Begin implementing Task 3.1 Low-Level Keyboard Hook
 
 Follow the AGENT.md standards and rules.
 Refer to the .claude.md (SystemTrayProcessManager folder) and app.spec.md file for the feature list (SystemTrayProcessManager\documentation folder).
 
 First create task-{num}-design.md, task-{num}-review.md and task-{num}-summary.md documents, in the documentation folder for your task.
-Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 4: Window Manipulation Features)
+Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 3.1 Low-Level Keyboard Hook)
 ​
 Have reviewer.claude.md review it.
 Include unit test code coverage via xUnit
