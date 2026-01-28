@@ -4,61 +4,208 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SystemTrayProcessManager.UI"
+        xmlns:controls="clr-namespace:SystemTrayProcessManager.UI.Controls"
+        xmlns:converters="clr-namespace:SystemTrayProcessManager.UI.Converters"
         mc:Ignorable="d"
         Title="SystemTray Process Manager" 
-        Height="600" 
-        Width="900"
-        MinHeight="400"
-        MinWidth="600"
-        WindowStartupLocation="CenterScreen">
+        Height="650" 
+        Width="950"
+        MinHeight="450"
+        MinWidth="650"
+        WindowStartupLocation="CenterScreen"
+        Style="{DynamicResource DarkWindowStyle}">
+
+    <Window.Resources>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        <converters:BoolToMuteIconConverter x:Key="BoolToMuteIconConverter"/>
+        <!-- Inverse bool to visibility -->
+        <converters:InverseBoolConverter x:Key="InverseBoolToVisConverterHelper"/>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Background="#0078D4" Padding="20">
-            <TextBlock Text="SystemTray Process Manager" 
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Foreground="White"/>
+        <!-- ==================== Header ==================== -->
+        <Border Grid.Row="0" Style="{DynamicResource HeaderPanelStyle}">
+            <DockPanel>
+                <!-- Title area -->
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Style="{DynamicResource HeaderTitleStyle}"
+                               Text="Process Manager"/>
+                    <TextBlock Style="{DynamicResource HeaderSubtitleStyle}"
+                               Text="{Binding StatusText}"/>
+                </StackPanel>
+
+                <!-- Right-side action buttons -->
+                <StackPanel DockPanel.Dock="Right" 
+                            Orientation="Horizontal" 
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+
+                    <!-- Notification bell -->
+                    <Grid Margin="0,0,8,0">
+                        <Button Style="{DynamicResource IconButtonStyle}"
+                                Command="{Binding ToggleNotificationPanelCommand}"
+                                ToolTip="Notifications"
+                                Width="36" Height="36"
+                                FontSize="16"
+                                FontFamily="Segoe UI Symbol"
+                                Content="&#x1F514;"/>
+                        <!-- Badge -->
+                        <Border Visibility="{Binding HasNotifications, Converter={StaticResource BoolToVisConverter}}"
+                                Background="{DynamicResource DangerBrush}"
+                                CornerRadius="6"
+                                MinWidth="12" Height="12"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,-2,-2,0"
+                                IsHitTestVisible="False"/>
+                    </Grid>
+
+                    <!-- Refresh button -->
+                    <Button Style="{DynamicResource PrimaryButtonStyle}"
+                            Command="{Binding RefreshProcessesCommand}"
+                            Content="Refresh"
+                            Padding="12,6"
+                            ToolTip="Refresh process list"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
-        <!-- Main Content -->
-        <StackPanel Grid.Row="1" 
-                    VerticalAlignment="Center" 
-                    HorizontalAlignment="Center">
-            <TextBlock Text="🎉 System Tray Integration Complete!"
-                       FontSize="20"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,20"
-                       Foreground="#333"/>
-            <TextBlock Text="Try the following:"
-                       FontSize="14"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"
-                       Foreground="#666"/>
-            <StackPanel Margin="0,10,0,0" HorizontalAlignment="Center">
-                <TextBlock Text="• Minimize this window to hide to system tray" 
-                           FontSize="14" Foreground="#444" Margin="0,5"/>
-                <TextBlock Text="• Click the tray icon to restore the window" 
-                           FontSize="14" Foreground="#444" Margin="0,5"/>
-                <TextBlock Text="• Right-click the tray icon for context menu" 
-                           FontSize="14" Foreground="#444" Margin="0,5"/>
-                <TextBlock Text="• Select 'Exit' from the tray menu to close" 
-                           FontSize="14" Foreground="#444" Margin="0,5"/>
-            </StackPanel>
-        </StackPanel>
+        <!-- ==================== Search Bar ==================== -->
+        <Border Grid.Row="1" 
+                Padding="16,8"
+                Background="{DynamicResource SurfaceBrush}">
+            <Grid>
+                <!-- Search icon -->
+                <TextBlock Text="&#x1F50D;"
+                           FontSize="14"
+                           FontFamily="Segoe UI Symbol"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0"
+                           IsHitTestVisible="False"
+                           Panel.ZIndex="1"/>
+                
+                <!-- Search TextBox -->
+                <TextBox Style="{DynamicResource SearchBoxStyle}"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"/>
 
-        <!-- Footer -->
-        <Border Grid.Row="2" Background="#F5F5F5" Padding="10">
-            <TextBlock Text="Phase 1 - Task 2: System Tray Integration ✅"
-                       FontSize="12"
-                       Foreground="#888"
-                       HorizontalAlignment="Center"/>
+                <!-- Placeholder text -->
+                <TextBlock Text="Search processes by name, PID, or window title..."
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource TextDisabledBrush}"
+                           VerticalAlignment="Center"
+                           Margin="36,0,0,0"
+                           IsHitTestVisible="False"
+                           Visibility="{Binding SearchText.Length, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Invert}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SearchText}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- ==================== Main Content ==================== -->
+        <Grid Grid.Row="2">
+            <!-- Process Cards Grid -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Background="{DynamicResource BackgroundBrush}"
+                          Padding="12">
+                <ItemsControl ItemsSource="{Binding ProcessCards}"
+                              ItemTemplate="{DynamicResource ProcessCardTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Loading overlay -->
+            <Border Background="#AA1E1E1E"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="200" Height="4"
+                                 Foreground="{DynamicResource PrimaryBrush}"
+                                 Background="{DynamicResource SurfaceBrush}"/>
+                    <TextBlock Text="Loading processes..."
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Empty state -->
+            <StackPanel VerticalAlignment="Center" 
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding FilteredProcessCount, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=InvertZero}">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilteredProcessCount}" Value="0">
+                                <DataTrigger.Setters>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger.Setters>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Text="No processes found"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           Foreground="{DynamicResource TextDisabledBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Try adjusting your search filter or refresh the list"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource TextDisabledBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+            </StackPanel>
+
+            <!-- Notification Panel Popup (right-aligned overlay) -->
+            <Popup IsOpen="{Binding IsNotificationPanelOpen}"
+                   Placement="Relative"
+                   HorizontalOffset="-360"
+                   VerticalOffset="0"
+                   StaysOpen="False"
+                   AllowsTransparency="True"
+                   PlacementTarget="{Binding ElementName=NotifAnchor}">
+                <controls:NotificationPanel Margin="8"/>
+            </Popup>
+        </Grid>
+
+        <!-- ==================== Status Bar ==================== -->
+        <Border Grid.Row="3" Style="{DynamicResource StatusBarStyle}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left"
+                           Style="{DynamicResource StatusBarTextStyle}">
+                    <Run Text="Showing"/>
+                    <Run Text="{Binding FilteredProcessCount, Mode=OneWay}"/>
+                    <Run Text="of"/>
+                    <Run Text="{Binding TotalProcessCount, Mode=OneWay}"/>
+                    <Run Text="processes"/>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right"
+                           Style="{DynamicResource StatusBarTextStyle}"
+                           HorizontalAlignment="Right"
+                           x:Name="NotifAnchor"
+                           Text="SystemTray Process Manager v0.1.0"/>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>

@@ -1,0 +1,58 @@
+<Window x:Class="SystemTrayProcessManager.UI.Controls.HotkeyFeedbackOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        Focusable="False"
+        IsHitTestVisible="False"
+        x:Name="OverlayWindow">
+
+    <!-- OBS-style hotkey feedback overlay -->
+    <Border x:Name="OverlayBorder"
+            Background="#CC2D2D30"
+            CornerRadius="8"
+            Padding="16,10"
+            Margin="10"
+            BorderBrush="#550078D4"
+            BorderThickness="1"
+            Effect="{x:Null}"
+            Opacity="0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <!-- Key icon -->
+            <TextBlock Text="&#x2328;" 
+                       FontSize="18"
+                       Foreground="#0078D4"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,0"
+                       FontFamily="Segoe UI Symbol"/>
+            <!-- Hotkey text -->
+            <TextBlock x:Name="HotkeyText"
+                       Text="Ctrl+Shift+M"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#CCCCCC"
+                       VerticalAlignment="Center"
+                       FontFamily="Segoe UI"/>
+        </StackPanel>
+
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="Loaded">
+                <BeginStoryboard x:Name="FadeInStoryboard">
+                    <Storyboard>
+                        <!-- Fade in -->
+                        <DoubleAnimation Storyboard.TargetName="OverlayBorder"
+                                         Storyboard.TargetProperty="Opacity"
+                                         From="0" To="1"
+                                         Duration="0:0:0.2"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
+    </Border>
+</Window>

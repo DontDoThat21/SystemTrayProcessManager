@@ -7,7 +7,9 @@ using System.Windows.Threading;
 using SystemTrayProcessManager.Core.Services;
 using SystemTrayProcessManager.Infrastructure.Helpers;
 using SystemTrayProcessManager.Infrastructure.Services;
+using SystemTrayProcessManager.UI.Controls;
 using SystemTrayProcessManager.UI.Services;
+using SystemTrayProcessManager.UI.ViewModels;
 
 namespace SystemTrayProcessManager.UI
 {
@@ -424,13 +426,16 @@ namespace SystemTrayProcessManager.UI
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
+                            services.AddSingleton<INotificationService, NotificationService>();
 
                             // Register ViewModels
-                            services.AddTransient<ViewModels.HotkeyConfigViewModel>();
+                            services.AddTransient<HotkeyConfigViewModel>();
+                            services.AddSingleton<MainViewModel>();
 
-                            // Register windows
+                            // Register windows and controls
                             services.AddTransient<MainWindow>();
                             services.AddTransient<Views.HotkeyConfigWindow>();
+                            services.AddSingleton<HotkeyFeedbackOverlay>();
 
                             var serviceProvider = services.BuildServiceProvider();
 
