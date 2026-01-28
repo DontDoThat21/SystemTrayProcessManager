@@ -1,3 +1,33 @@
 <Solution>
-  <Project Path="SystemTrayProcessManager.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/SystemTrayProcessManager.Core/SystemTrayProcessManager.Core.csproj" />
+    <Project Path="src/SystemTrayProcessManager.Infrastructure/SystemTrayProcessManager.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/SystemTrayProcessManager.UI/">
+    <Project Path="src/SystemTrayProcessManager.UI/SystemTrayProcessManager.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SystemTrayProcessManager.Tests/SystemTrayProcessManager.Tests.csproj" />
+  </Folder>
+  <Folder Name="/claude/">
+    <Folder Name="/claude/skills/">
+      <File Path="claude/skills/architect.claude.md" />
+      <File Path="claude/skills/QUICKREF.md" />
+      <File Path="claude/skills/reviewer.claude.md" />
+      <File Path="claude/skills/SKILL.md" />
+      <File Path="claude/skills/wpf-engineer.claude.md" />
+    </Folder>
+  </Folder>
+  <Folder Name="/documentation/">
+    <File Path="documentation/app.spec.features.status.md" />
+    <File Path="documentation/app.spec.md" />
+    <File Path="documentation/appPrompt.txt" />
+    <File Path="documentation/task-1-design.md" />
+    <File Path="documentation/task-1-review.md" />
+    <File Path="documentation/task-1-summary.md" />
+  </Folder>
+  <File Path=".claude.md" />
+  <File Path=".gitattributes" />
+  <File Path=".gitignore" />
+  <File Path="AGENTS.md" />
 </Solution>
