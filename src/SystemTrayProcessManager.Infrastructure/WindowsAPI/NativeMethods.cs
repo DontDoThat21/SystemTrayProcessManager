@@ -253,6 +253,61 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
             }
         }
 
-        #endregion
-    }
-}
+                        #endregion
+
+                        #region User32.dll - Keyboard Hook Functions
+
+                        /// <summary>
+                        /// Installs an application-defined hook procedure into a hook chain.
+                        /// </summary>
+                        /// <param name="idHook">The type of hook procedure to be installed.</param>
+                        /// <param name="lpfn">A pointer to the hook procedure.</param>
+                        /// <param name="hMod">A handle to the DLL containing the hook procedure (IntPtr.Zero for managed code with WH_KEYBOARD_LL).</param>
+                        /// <param name="dwThreadId">The identifier of the thread with which the hook procedure is to be associated.</param>
+                        /// <returns>Handle to the hook procedure, or IntPtr.Zero if the function fails.</returns>
+                        [LibraryImport("user32.dll", SetLastError = true)]
+                        public static partial IntPtr SetWindowsHookEx(int idHook, IntPtr lpfn, IntPtr hMod, uint dwThreadId);
+
+                        /// <summary>
+                        /// Removes a hook procedure installed in a hook chain.
+                        /// </summary>
+                        /// <param name="hhk">Handle to the hook to be removed.</param>
+                        /// <returns>True if successful; false otherwise.</returns>
+                        [LibraryImport("user32.dll", SetLastError = true)]
+                        [return: MarshalAs(UnmanagedType.Bool)]
+                        public static partial bool UnhookWindowsHookEx(IntPtr hhk);
+
+                        /// <summary>
+                        /// Passes the hook information to the next hook procedure in the current hook chain.
+                        /// </summary>
+                        /// <param name="hhk">This parameter is ignored.</param>
+                        /// <param name="nCode">The hook code passed to the current hook procedure.</param>
+                        /// <param name="wParam">The wParam value passed to the current hook procedure.</param>
+                        /// <param name="lParam">The lParam value passed to the current hook procedure.</param>
+                        /// <returns>The value returned by the next hook procedure in the chain.</returns>
+                        [LibraryImport("user32.dll", SetLastError = true)]
+                        public static partial IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+                        /// <summary>
+                        /// Determines whether a key is up or down at the time the function is called.
+                        /// </summary>
+                        /// <param name="vKey">The virtual-key code.</param>
+                        /// <returns>If the high-order bit is 1, the key is down; otherwise, it is up.</returns>
+                        [LibraryImport("user32.dll")]
+                        public static partial short GetAsyncKeyState(int vKey);
+
+                        /// <summary>
+                        /// Checks if the specified key is currently pressed.
+                        /// </summary>
+                        /// <param name="vKey">The virtual-key code to check.</param>
+                        /// <returns>True if the key is pressed; false otherwise.</returns>
+                        public static bool IsKeyPressed(int vKey)
+                        {
+                            return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+                        }
+
+                        #endregion
+                    }
+                }
+
+

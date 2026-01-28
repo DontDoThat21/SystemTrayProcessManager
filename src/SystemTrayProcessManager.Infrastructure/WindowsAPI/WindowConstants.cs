@@ -361,6 +361,43 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
         /// </summary>
         public const int ERROR_INVALID_PARAMETER = 87;
 
-        #endregion
-    }
-}
+                #endregion
+
+                #region Keyboard Hook Constants
+
+                /// <summary>
+                /// Installs a hook procedure that monitors low-level keyboard input events.
+                /// </summary>
+                public const int WH_KEYBOARD_LL = 13;
+
+                /// <summary>
+                /// The wParam and lParam parameters contain information about a keyboard message.
+                /// </summary>
+                public const int HC_ACTION = 0;
+
+                /// <summary>
+                /// Posted to the window with the keyboard focus when a nonsystem key is pressed.
+                /// </summary>
+                public const int WM_KEYDOWN = 0x0100;
+
+                /// <summary>
+                /// Posted to the window with the keyboard focus when a nonsystem key is released.
+                /// </summary>
+                public const int WM_KEYUP = 0x0101;
+
+                /// <summary>
+                /// Posted to the window with the keyboard focus when the user presses the F10 key
+                /// or holds down the ALT key and then presses another key.
+                /// </summary>
+                public const int WM_SYSKEYDOWN = 0x0104;
+
+                /// <summary>
+                /// Posted to the window with the keyboard focus when the user releases a key
+                /// that was pressed while the ALT key was held down.
+                /// </summary>
+                public const int WM_SYSKEYUP = 0x0105;
+
+                #endregion
+            }
+        }
+
