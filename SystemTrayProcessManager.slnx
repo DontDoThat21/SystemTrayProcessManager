@@ -26,9 +26,26 @@
     <File Path="documentation/app.spec.features.status.md" />
     <File Path="documentation/app.spec.md" />
     <File Path="documentation/appPrompt.txt" />
+    <File Path="documentation/review.md" />
+    <File Path="documentation/summary.md" />
     <File Path="documentation/task-1-design.md" />
     <File Path="documentation/task-1-review.md" />
     <File Path="documentation/task-1-summary.md" />
+    <File Path="documentation/task-2-design.md" />
+    <File Path="documentation/task-2-review.md" />
+    <File Path="documentation/task-2-summary.md" />
+    <File Path="documentation/task-3-design.md" />
+    <File Path="documentation/task-3-review.md" />
+    <File Path="documentation/task-3-summary.md" />
+    <File Path="documentation/task-4-design.md" />
+    <File Path="documentation/task-4-review.md" />
+    <File Path="documentation/task-4-summary.md" />
+    <File Path="documentation/task-5-design.md" />
+    <File Path="documentation/task-5-review.md" />
+    <File Path="documentation/task-5-summary.md" />
+    <File Path="documentation/task-7-design.md" />
+    <File Path="documentation/task-7-review.md" />
+    <File Path="documentation/task-7-summary.md" />
   </Folder>
   <File Path=".claude.md" />
   <File Path=".gitattributes" />
