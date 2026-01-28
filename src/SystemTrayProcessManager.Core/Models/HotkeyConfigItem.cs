@@ -22,6 +22,7 @@ namespace SystemTrayProcessManager.Core.Models
         private string _actionType = string.Empty;
         private string? _targetProcessName;
         private bool _isEnabled = true;
+        private ActionMode _actionMode = ActionMode.QuickAction;
 
         /// <summary>
         /// Gets or sets the unique identifier for this configuration item.
@@ -115,6 +116,16 @@ namespace SystemTrayProcessManager.Core.Models
         {
             get => _targetProcessName;
             set => SetProperty(ref _targetProcessName, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the action mode that determines how the target is identified.
+        /// QuickAction targets the focused window; PinnedProcess targets a specific process by name.
+        /// </summary>
+        public ActionMode ActionMode
+        {
+            get => _actionMode;
+            set => SetProperty(ref _actionMode, value);
         }
 
         /// <summary>
@@ -250,6 +261,7 @@ namespace SystemTrayProcessManager.Core.Models
                 Modifiers = _modifiers,
                 ActionType = _actionType,
                 TargetProcessName = _targetProcessName,
+                ActionMode = _actionMode,
                 IsEnabled = _isEnabled
             };
         }
@@ -266,10 +278,11 @@ namespace SystemTrayProcessManager.Core.Models
             Description = other.Description;
             VirtualKeyCode = other.VirtualKeyCode;
             Modifiers = other.Modifiers;
-            ActionType = other.ActionType;
-            TargetProcessName = other.TargetProcessName;
-            IsEnabled = other.IsEnabled;
-        }
+                ActionType = other.ActionType;
+                TargetProcessName = other.TargetProcessName;
+                ActionMode = other.ActionMode;
+                IsEnabled = other.IsEnabled;
+            }
 
         /// <summary>
         /// Determines whether this item conflicts with another (same key combination).

@@ -23,6 +23,7 @@ namespace SystemTrayProcessManager.UI
         private bool _mutexCreated;
         private ITrayIconService? _trayIconService;
         private IProcessService? _processService;
+        private IActionMappingService? _actionMappingService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -81,7 +82,22 @@ namespace SystemTrayProcessManager.UI
 
                         Log.Information("System tray icon initialized.");
 
-                        // Step 7: Initialize and show main window
+                        // Step 7: Initialize action mapping service
+                        _actionMappingService = _serviceProvider.GetRequiredService<IActionMappingService>();
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _actionMappingService.InitializeAsync();
+                                Log.Information("Action mapping service initialized.");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, "Failed to initialize action mapping service");
+                            }
+                        });
+
+                        // Step 8: Initialize and show main window
                         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
                         MainWindow = mainWindow;
                         mainWindow.Show();
@@ -187,17 +203,26 @@ namespace SystemTrayProcessManager.UI
                                     _trayIconService = null;
                                 }
 
-                                // Stop process monitoring and dispose
-                                if (_processService != null)
-                                {
-                                    Log.Debug("Stopping and disposing process service...");
-                                    _processService.StopMonitoring();
-                                    _processService.Dispose();
-                                    _processService = null;
-                                }
+                                        // Stop process monitoring and dispose
+                                        if (_processService != null)
+                                        {
+                                            Log.Debug("Stopping and disposing process service...");
+                                            _processService.StopMonitoring();
+                                            _processService.Dispose();
+                                            _processService = null;
+                                        }
 
-                                // Dispose services
-                        if (_serviceProvider is IDisposable disposable)
+                                        // Shutdown and dispose action mapping service
+                                        if (_actionMappingService != null)
+                                        {
+                                            Log.Debug("Shutting down action mapping service...");
+                                            _actionMappingService.Shutdown();
+                                            _actionMappingService.Dispose();
+                                            _actionMappingService = null;
+                                        }
+
+                                        // Dispose services
+                                if (_serviceProvider is IDisposable disposable)
                         {
                             Log.Debug("Disposing service provider...");
                             disposable.Dispose();
@@ -380,6 +405,7 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IAudioService, AudioManagerService>();
                             services.AddSingleton<IHotkeyService, HotkeyManagerService>();
                             services.AddSingleton<IHotkeyConfigurationService, HotkeyConfigurationService>();
+                            services.AddSingleton<IActionMappingService, ActionMappingService>();
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
