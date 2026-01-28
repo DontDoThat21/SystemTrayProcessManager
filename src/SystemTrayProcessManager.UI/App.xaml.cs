@@ -5,6 +5,8 @@ using System.IO;
 using System.Threading;
 using System.Windows.Threading;
 using SystemTrayProcessManager.Core.Services;
+using SystemTrayProcessManager.Infrastructure.Helpers;
+using SystemTrayProcessManager.Infrastructure.Services;
 using SystemTrayProcessManager.UI.Services;
 
 namespace SystemTrayProcessManager.UI
@@ -20,6 +22,7 @@ namespace SystemTrayProcessManager.UI
         private Mutex? _instanceMutex;
         private bool _mutexCreated;
         private ITrayIconService? _trayIconService;
+        private IProcessService? _processService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -63,7 +66,13 @@ namespace SystemTrayProcessManager.UI
 
                         Log.Information("Dependency injection configured.");
 
-                        // Step 5: Initialize system tray icon
+                        // Step 5: Initialize process service and start monitoring
+                        _processService = _serviceProvider.GetRequiredService<IProcessService>();
+                        _processService.StartMonitoring();
+
+                        Log.Information("Process monitoring service started.");
+
+                        // Step 6: Initialize system tray icon
                         _trayIconService = _serviceProvider.GetRequiredService<ITrayIconService>();
                         _trayIconService.Initialize();
                         _trayIconService.TrayIconClicked += OnTrayIconClicked;
@@ -71,7 +80,7 @@ namespace SystemTrayProcessManager.UI
 
                         Log.Information("System tray icon initialized.");
 
-                        // Step 6: Initialize and show main window
+                        // Step 7: Initialize and show main window
                         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
                         MainWindow = mainWindow;
                         mainWindow.Show();
@@ -136,16 +145,25 @@ namespace SystemTrayProcessManager.UI
                         Log.Information("Application shutting down...");
 
                         // Unsubscribe from tray events and dispose
-                        if (_trayIconService != null)
-                        {
-                            Log.Debug("Disposing tray icon service...");
-                            _trayIconService.TrayIconClicked -= OnTrayIconClicked;
-                            _trayIconService.ExitRequested -= OnExitRequested;
-                            _trayIconService.Dispose();
-                            _trayIconService = null;
-                        }
+                                if (_trayIconService != null)
+                                {
+                                    Log.Debug("Disposing tray icon service...");
+                                    _trayIconService.TrayIconClicked -= OnTrayIconClicked;
+                                    _trayIconService.ExitRequested -= OnExitRequested;
+                                    _trayIconService.Dispose();
+                                    _trayIconService = null;
+                                }
 
-                        // Dispose services
+                                // Stop process monitoring and dispose
+                                if (_processService != null)
+                                {
+                                    Log.Debug("Stopping and disposing process service...");
+                                    _processService.StopMonitoring();
+                                    _processService.Dispose();
+                                    _processService = null;
+                                }
+
+                                // Dispose services
                         if (_serviceProvider is IDisposable disposable)
                         {
                             Log.Debug("Disposing service provider...");
@@ -307,45 +325,48 @@ namespace SystemTrayProcessManager.UI
             }
         }
 
-                /// <summary>
-                /// Configures the dependency injection container and registers all services.
-                /// </summary>
-                /// <returns>Configured service provider.</returns>
-                private IServiceProvider ConfigureServices()
-                {
-                    var services = new ServiceCollection();
+                        /// <summary>
+                        /// Configures the dependency injection container and registers all services.
+                        /// </summary>
+                        /// <returns>Configured service provider.</returns>
+                        private IServiceProvider ConfigureServices()
+                        {
+                            var services = new ServiceCollection();
 
-                    // Register logging
-                    services.AddLogging(loggingBuilder =>
-                    {
-                        loggingBuilder.ClearProviders();
-                        loggingBuilder.AddSerilog(dispose: true);
-                    });
+                            // Register logging
+                            services.AddLogging(loggingBuilder =>
+                            {
+                                loggingBuilder.ClearProviders();
+                                loggingBuilder.AddSerilog(dispose: true);
+                            });
 
-                    // Register UI services
-                    services.AddSingleton<ITrayIconService, TrayIconService>();
+                            // Register Infrastructure services
+                            services.AddSingleton<IIconExtractor, IconExtractor>();
+                            services.AddSingleton<IProcessService, ProcessMonitorService>();
 
-                    // Register windows
-                    services.AddTransient<MainWindow>();
+                            // Register UI services
+                            services.AddSingleton<ITrayIconService, TrayIconService>();
 
-                    // TODO: Register services from Infrastructure project as they are created
-                    // Example:
-                    // services.AddSingleton<IProcessService, ProcessMonitorService>();
-                    // services.AddSingleton<IWindowService, WindowManipulationService>();
-                    // services.AddSingleton<IAudioService, AudioManagerService>();
-                    // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
+                            // Register windows
+                            services.AddTransient<MainWindow>();
 
-                    // TODO: Register ViewModels as they are created
-                    // Example:
-                    // services.AddTransient<MainViewModel>();
-                    // services.AddTransient<SettingsViewModel>();
+                            // TODO: Register additional services from Infrastructure project as they are created
+                            // Example:
+                            // services.AddSingleton<IWindowService, WindowManipulationService>();
+                            // services.AddSingleton<IAudioService, AudioManagerService>();
+                            // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
 
-                    var serviceProvider = services.BuildServiceProvider();
+                            // TODO: Register ViewModels as they are created
+                            // Example:
+                            // services.AddTransient<MainViewModel>();
+                            // services.AddTransient<SettingsViewModel>();
 
-                    // Log registered services (useful for debugging)
-                    Log.Debug("Service provider built with {Count} services", services.Count);
+                            var serviceProvider = services.BuildServiceProvider();
 
-                    return serviceProvider;
+                            // Log registered services (useful for debugging)
+                            Log.Debug("Service provider built with {Count} services", services.Count);
+
+                            return serviceProvider;
+                        }
+                    }
                 }
-            }
-        }

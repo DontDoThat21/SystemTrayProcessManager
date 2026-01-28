@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using System.Drawing;
 using System.Windows.Forms;
 using SystemTrayProcessManager.Core.Enums;
+using SystemTrayProcessManager.Core.Models;
 using SystemTrayProcessManager.Core.Services;
 
 namespace SystemTrayProcessManager.UI.Services
@@ -9,20 +10,29 @@ namespace SystemTrayProcessManager.UI.Services
     /// <summary>
     /// Implements system tray functionality using Windows Forms NotifyIcon.
     /// Provides tray icon display, context menu, balloon notifications, and user interaction handling.
+    /// Integrates with IProcessService to display running processes in the context menu.
     /// </summary>
     public sealed class TrayIconService : ITrayIconService
     {
         private readonly ILogger<TrayIconService> _logger;
+        private readonly IProcessService _processService;
         private NotifyIcon? _notifyIcon;
         private ContextMenuStrip? _contextMenu;
+        private ToolStripMenuItem? _processesMenuItem;
         private bool _disposed;
         private bool _initialized;
+        private const int MaxProcessesInMenu = 10;
 
         /// <inheritdoc/>
         public event EventHandler? TrayIconClicked;
 
         /// <inheritdoc/>
         public event EventHandler? ExitRequested;
+
+        /// <summary>
+        /// Occurs when a process is selected from the context menu.
+        /// </summary>
+        public event EventHandler<ProcessInfo>? ProcessSelected;
 
         /// <inheritdoc/>
         public bool IsVisible => _notifyIcon?.Visible ?? false;
@@ -31,10 +41,12 @@ namespace SystemTrayProcessManager.UI.Services
         /// Initializes a new instance of the <see cref="TrayIconService"/> class.
         /// </summary>
         /// <param name="logger">Logger instance for diagnostic output.</param>
-        /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
-        public TrayIconService(ILogger<TrayIconService> logger)
+        /// <param name="processService">Process service for enumerating running processes.</param>
+        /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+        public TrayIconService(ILogger<TrayIconService> logger, IProcessService processService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _processService = processService ?? throw new ArgumentNullException(nameof(processService));
         }
 
         /// <inheritdoc/>
@@ -167,6 +179,7 @@ namespace SystemTrayProcessManager.UI.Services
         private ContextMenuStrip CreateContextMenu()
         {
             var menu = new ContextMenuStrip();
+            menu.Opening += OnContextMenuOpening;
 
             // Header (disabled, just for display)
             var headerItem = new ToolStripMenuItem("SystemTray Process Manager")
@@ -185,15 +198,12 @@ namespace SystemTrayProcessManager.UI.Services
             showWindowItem.Font = new Font(menu.Font, FontStyle.Bold); // Default action
             menu.Items.Add(showWindowItem);
 
-            // Separator for future process list
+            // Separator for process list
             menu.Items.Add(new ToolStripSeparator());
 
-            // Placeholder for process list (future task)
-            var processPlaceholder = new ToolStripMenuItem("Processes...")
-            {
-                Enabled = false
-            };
-            menu.Items.Add(processPlaceholder);
+            // Processes submenu (dynamically populated)
+            _processesMenuItem = new ToolStripMenuItem("Running Processes");
+            menu.Items.Add(_processesMenuItem);
 
             // Separator
             menu.Items.Add(new ToolStripSeparator());
@@ -204,6 +214,166 @@ namespace SystemTrayProcessManager.UI.Services
             menu.Items.Add(exitItem);
 
             return menu;
+        }
+
+        /// <summary>
+        /// Handles context menu opening to refresh the process list.
+        /// </summary>
+        private async void OnContextMenuOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                await RefreshProcessMenuAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing process menu");
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the running processes submenu with current process list.
+        /// </summary>
+        private async Task RefreshProcessMenuAsync()
+        {
+            if (_processesMenuItem == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _logger.LogDebug("Refreshing process menu...");
+
+                // Get current processes
+                var processes = await _processService.GetRunningProcessesAsync();
+                var processList = processes.Take(MaxProcessesInMenu).ToList();
+
+                // Clear existing items
+                _processesMenuItem.DropDownItems.Clear();
+
+                if (processList.Count == 0)
+                {
+                    var noProcessItem = new ToolStripMenuItem("No processes found")
+                    {
+                        Enabled = false
+                    };
+                    _processesMenuItem.DropDownItems.Add(noProcessItem);
+                }
+                else
+                {
+                    foreach (var process in processList)
+                    {
+                        var displayText = process.WindowTitle != null
+                            ? $"{process.Name} - {TruncateText(process.WindowTitle, 40)}"
+                            : process.Name;
+
+                        var menuItem = new ToolStripMenuItem(displayText)
+                        {
+                            Tag = process,
+                            ToolTipText = $"PID: {process.ProcessId}\n{process.ExecutablePath ?? "Path unavailable"}"
+                        };
+
+                        // Try to set the process icon
+                        if (process.Icon != null)
+                        {
+                            try
+                            {
+                                var wpfIcon = process.Icon;
+                                // Convert WPF ImageSource to GDI+ Image for menu
+                                menuItem.Image = ConvertWpfImageToGdi(wpfIcon);
+                            }
+                            catch
+                            {
+                                // Ignore icon conversion errors
+                            }
+                        }
+
+                        menuItem.Click += OnProcessMenuItemClicked;
+                        _processesMenuItem.DropDownItems.Add(menuItem);
+                    }
+
+                    // Add separator and count info
+                    if (processes.Count > MaxProcessesInMenu)
+                    {
+                        _processesMenuItem.DropDownItems.Add(new ToolStripSeparator());
+                        var moreItem = new ToolStripMenuItem($"...and {processes.Count - MaxProcessesInMenu} more")
+                        {
+                            Enabled = false
+                        };
+                        _processesMenuItem.DropDownItems.Add(moreItem);
+                    }
+                }
+
+                _processesMenuItem.Text = $"Running Processes ({processes.Count})";
+                _logger.LogDebug("Process menu refreshed with {Count} items", processList.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing process menu");
+
+                _processesMenuItem.DropDownItems.Clear();
+                var errorItem = new ToolStripMenuItem("Error loading processes")
+                {
+                    Enabled = false
+                };
+                _processesMenuItem.DropDownItems.Add(errorItem);
+            }
+        }
+
+        /// <summary>
+        /// Handles click on a process menu item.
+        /// </summary>
+        private void OnProcessMenuItemClicked(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is ProcessInfo process)
+            {
+                _logger.LogDebug("Process selected from menu: {ProcessName} (PID: {ProcessId})", process.Name, process.ProcessId);
+                ProcessSelected?.Invoke(this, process);
+            }
+        }
+
+        /// <summary>
+        /// Converts a WPF ImageSource to a GDI+ Image for use in Windows Forms menus.
+        /// </summary>
+        private static System.Drawing.Image? ConvertWpfImageToGdi(System.Windows.Media.ImageSource? wpfImage)
+        {
+            if (wpfImage == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                if (wpfImage is System.Windows.Media.Imaging.BitmapSource bitmapSource)
+                {
+                    using var memoryStream = new System.IO.MemoryStream();
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapSource));
+                    encoder.Save(memoryStream);
+                    memoryStream.Position = 0;
+                    return System.Drawing.Image.FromStream(memoryStream);
+                }
+            }
+            catch
+            {
+                // Return null on conversion failure
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Truncates text to a maximum length, adding ellipsis if truncated.
+        /// </summary>
+        private static string TruncateText(string text, int maxLength)
+        {
+            if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            {
+                return text;
+            }
+
+            return text[..(maxLength - 3)] + "...";
         }
 
         /// <summary>
@@ -352,49 +522,63 @@ namespace SystemTrayProcessManager.UI.Services
             ExitRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _logger.LogDebug("Disposing TrayIconService...");
-
-            try
-            {
-                if (_notifyIcon != null)
+                /// <inheritdoc/>
+                public void Dispose()
                 {
-                    _notifyIcon.MouseClick -= OnNotifyIconMouseClick;
-                    _notifyIcon.MouseDoubleClick -= OnNotifyIconMouseDoubleClick;
-                    _notifyIcon.BalloonTipClicked -= OnBalloonTipClicked;
-
-                    _notifyIcon.Visible = false;
-                    _notifyIcon.Icon?.Dispose();
-                    _notifyIcon.Dispose();
-                    _notifyIcon = null;
-                }
-
-                if (_contextMenu != null)
-                {
-                    foreach (var item in _contextMenu.Items.OfType<ToolStripMenuItem>())
+                    if (_disposed)
                     {
-                        item.Click -= OnShowWindowClicked;
-                        item.Click -= OnExitClicked;
+                        return;
                     }
 
-                    _contextMenu.Dispose();
-                    _contextMenu = null;
-                }
+                    _logger.LogDebug("Disposing TrayIconService...");
 
-                _disposed = true;
-                _logger.LogInformation("TrayIconService disposed successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during TrayIconService disposal");
+                    try
+                    {
+                        if (_contextMenu != null)
+                        {
+                            _contextMenu.Opening -= OnContextMenuOpening;
+                        }
+
+                        if (_notifyIcon != null)
+                        {
+                            _notifyIcon.MouseClick -= OnNotifyIconMouseClick;
+                            _notifyIcon.MouseDoubleClick -= OnNotifyIconMouseDoubleClick;
+                            _notifyIcon.BalloonTipClicked -= OnBalloonTipClicked;
+
+                            _notifyIcon.Visible = false;
+                            _notifyIcon.Icon?.Dispose();
+                            _notifyIcon.Dispose();
+                            _notifyIcon = null;
+                        }
+
+                        if (_contextMenu != null)
+                        {
+                            // Unsubscribe from process menu items
+                            if (_processesMenuItem != null)
+                            {
+                                foreach (var item in _processesMenuItem.DropDownItems.OfType<ToolStripMenuItem>())
+                                {
+                                    item.Click -= OnProcessMenuItemClicked;
+                                }
+                            }
+
+                            foreach (var item in _contextMenu.Items.OfType<ToolStripMenuItem>())
+                            {
+                                item.Click -= OnShowWindowClicked;
+                                item.Click -= OnExitClicked;
+                            }
+
+                            _contextMenu.Dispose();
+                            _contextMenu = null;
+                        }
+
+                        _disposed = true;
+                        _logger.LogInformation("TrayIconService disposed successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during TrayIconService disposal");
+                    }
+                }
             }
         }
-    }
-}

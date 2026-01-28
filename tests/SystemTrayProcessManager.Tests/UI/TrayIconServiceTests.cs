@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using SystemTrayProcessManager.Core.Enums;
+using SystemTrayProcessManager.Core.Models;
 using SystemTrayProcessManager.Core.Services;
 using SystemTrayProcessManager.UI.Services;
 
@@ -15,10 +16,17 @@ namespace SystemTrayProcessManager.Tests.UI
     public class TrayIconServiceTests
     {
         private readonly Mock<ILogger<TrayIconService>> _loggerMock;
+        private readonly Mock<IProcessService> _processServiceMock;
 
         public TrayIconServiceTests()
         {
             _loggerMock = new Mock<ILogger<TrayIconService>>();
+            _processServiceMock = new Mock<IProcessService>();
+
+            // Setup default behavior for process service
+            _processServiceMock
+                .Setup(x => x.GetRunningProcessesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<ProcessInfo>());
         }
 
         #region Constructor Tests
@@ -27,7 +35,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Constructor_WithNullLogger_ThrowsArgumentNullException()
         {
             // Arrange & Act
-            var act = () => new TrayIconService(null!);
+            var act = () => new TrayIconService(null!, _processServiceMock.Object);
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -35,10 +43,21 @@ namespace SystemTrayProcessManager.Tests.UI
         }
 
         [Fact]
+        public void Constructor_WithNullProcessService_ThrowsArgumentNullException()
+        {
+            // Arrange & Act
+            var act = () => new TrayIconService(_loggerMock.Object, null!);
+
+            // Assert
+            act.Should().Throw<ArgumentNullException>()
+                .WithParameterName("processService");
+        }
+
+        [Fact]
         public void Constructor_WithValidLogger_CreatesInstance()
         {
             // Arrange & Act
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Assert
             service.Should().NotBeNull();
@@ -52,7 +71,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Initialize_WhenCalled_SetsIsVisibleToTrue()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             service.Initialize();
@@ -65,7 +84,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Initialize_WhenCalledTwice_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             service.Initialize();
@@ -79,7 +98,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Initialize_LogsInitialization()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             service.Initialize();
@@ -103,7 +122,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetVisible_BeforeInitialize_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             var act = () => service.SetVisible(false);
@@ -116,7 +135,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetVisible_AfterInitialize_ChangesVisibility()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -130,7 +149,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetVisible_ToTrue_MakesIconVisible()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
             service.SetVisible(false);
 
@@ -149,7 +168,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetTooltip_BeforeInitialize_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             var act = () => service.SetTooltip("Test tooltip");
@@ -162,7 +181,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetTooltip_WithLongText_TruncatesTo127Characters()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
             var longTooltip = new string('A', 200);
 
@@ -175,7 +194,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void SetTooltip_WithNullText_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -193,7 +212,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void ShowBalloonTip_BeforeInitialize_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             var act = () => service.ShowBalloonTip("Title", "Message");
@@ -210,7 +229,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void ShowBalloonTip_WithDifferentIcons_DoesNotThrow(BalloonIcon icon)
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -224,7 +243,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void ShowBalloonTip_WithEmptyTitle_UsesDefaultTitle()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act & Assert - should not throw with empty title
@@ -236,7 +255,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void ShowBalloonTip_WithNullMessage_DoesNotThrow()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -254,7 +273,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void TrayIconClicked_CanSubscribeAndUnsubscribe()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             var handler = new EventHandler((s, e) => { });
 
             // Act & Assert - subscription should not throw
@@ -269,7 +288,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void ExitRequested_CanSubscribeAndUnsubscribe()
         {
             // Arrange
-            using var service = new TrayIconService(_loggerMock.Object);
+            using var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             var handler = new EventHandler((s, e) => { });
 
             // Act & Assert - subscription should not throw
@@ -288,7 +307,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Dispose_WhenCalled_CanBeCalledMultipleTimes()
         {
             // Arrange
-            var service = new TrayIconService(_loggerMock.Object);
+            var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -303,7 +322,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Dispose_AfterInitialize_HidesIcon()
         {
             // Arrange
-            var service = new TrayIconService(_loggerMock.Object);
+            var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -317,7 +336,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Dispose_WithoutInitialize_DoesNotThrow()
         {
             // Arrange
-            var service = new TrayIconService(_loggerMock.Object);
+            var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
 
             // Act
             var act = () => service.Dispose();
@@ -330,7 +349,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void Dispose_LogsDisposal()
         {
             // Arrange
-            var service = new TrayIconService(_loggerMock.Object);
+            var service = new TrayIconService(_loggerMock.Object, _processServiceMock.Object);
             service.Initialize();
 
             // Act
@@ -357,6 +376,7 @@ namespace SystemTrayProcessManager.Tests.UI
             // Arrange
             var services = new ServiceCollection();
             services.AddLogging();
+            services.AddSingleton(_processServiceMock.Object);
             services.AddSingleton<ITrayIconService, TrayIconService>();
             var serviceProvider = services.BuildServiceProvider();
 
@@ -377,6 +397,7 @@ namespace SystemTrayProcessManager.Tests.UI
             // Arrange
             var services = new ServiceCollection();
             services.AddLogging();
+            services.AddSingleton(_processServiceMock.Object);
             services.AddSingleton<ITrayIconService, TrayIconService>();
             var serviceProvider = services.BuildServiceProvider();
 
