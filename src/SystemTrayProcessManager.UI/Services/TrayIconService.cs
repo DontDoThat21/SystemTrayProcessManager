@@ -29,6 +29,9 @@ namespace SystemTrayProcessManager.UI.Services
         /// <inheritdoc/>
         public event EventHandler? ExitRequested;
 
+        /// <inheritdoc/>
+        public event EventHandler? HotkeyConfigRequested;
+
         /// <summary>
         /// Occurs when a process is selected from the context menu.
         /// </summary>
@@ -197,6 +200,11 @@ namespace SystemTrayProcessManager.UI.Services
             showWindowItem.Click += OnShowWindowClicked;
             showWindowItem.Font = new Font(menu.Font, FontStyle.Bold); // Default action
             menu.Items.Add(showWindowItem);
+
+            // Hotkey Configuration
+            var hotkeyConfigItem = new ToolStripMenuItem("⌨️ Hotkey Configuration");
+            hotkeyConfigItem.Click += OnHotkeyConfigClicked;
+            menu.Items.Add(hotkeyConfigItem);
 
             // Separator for process list
             menu.Items.Add(new ToolStripSeparator());
@@ -520,6 +528,15 @@ namespace SystemTrayProcessManager.UI.Services
         {
             _logger.LogDebug("Exit menu item clicked");
             ExitRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Handles the Hotkey Configuration menu item click.
+        /// </summary>
+        private void OnHotkeyConfigClicked(object? sender, EventArgs e)
+        {
+            _logger.LogDebug("Hotkey Configuration menu item clicked");
+            HotkeyConfigRequested?.Invoke(this, EventArgs.Empty);
         }
 
                 /// <inheritdoc/>

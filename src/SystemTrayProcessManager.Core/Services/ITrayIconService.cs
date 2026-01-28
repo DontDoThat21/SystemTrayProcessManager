@@ -48,5 +48,10 @@ namespace SystemTrayProcessManager.Core.Services
         /// Occurs when the user selects the Exit option from the context menu.
         /// </summary>
         event EventHandler? ExitRequested;
+
+        /// <summary>
+        /// Occurs when the user selects the Hotkey Configuration option from the context menu.
+        /// </summary>
+        event EventHandler? HotkeyConfigRequested;
     }
 }

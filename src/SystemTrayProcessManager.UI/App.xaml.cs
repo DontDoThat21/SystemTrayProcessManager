@@ -77,6 +77,7 @@ namespace SystemTrayProcessManager.UI
                         _trayIconService.Initialize();
                         _trayIconService.TrayIconClicked += OnTrayIconClicked;
                         _trayIconService.ExitRequested += OnExitRequested;
+                        _trayIconService.HotkeyConfigRequested += OnHotkeyConfigRequested;
 
                         Log.Information("System tray icon initialized.");
 
@@ -102,43 +103,74 @@ namespace SystemTrayProcessManager.UI
 
                         MessageBox.Show(
                             $"A fatal error occurred during startup:\n\n{ex.Message}\n\nThe application will now close.",
-                            "Startup Error",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
+                                        "Startup Error",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Error);
 
-                        Shutdown(2);
-                    }
-                }
+                                    Shutdown(2);
+                                }
+                            }
 
-                /// <summary>
-                /// Handles the tray icon click event - shows and activates the main window.
-                /// </summary>
-                private void OnTrayIconClicked(object? sender, EventArgs e)
-                {
-                    Log.Debug("Tray icon clicked - showing main window");
+                            /// <summary>
+                            /// Handles the tray icon click event - shows and activates the main window.
+                            /// </summary>
+                            private void OnTrayIconClicked(object? sender, EventArgs e)
+                            {
+                                Log.Debug("Tray icon clicked - showing main window");
 
-                    if (MainWindow != null)
-                    {
-                        MainWindow.Show();
-                        MainWindow.WindowState = WindowState.Normal;
-                        MainWindow.Activate();
-                    }
-                }
+                                if (MainWindow != null)
+                                {
+                                    MainWindow.Show();
+                                    MainWindow.WindowState = WindowState.Normal;
+                                    MainWindow.Activate();
+                                }
+                            }
 
-                /// <summary>
-                /// Handles the exit request from the tray icon context menu.
-                /// </summary>
-                private void OnExitRequested(object? sender, EventArgs e)
-                {
-                    Log.Information("Exit requested from tray icon menu");
-                    Shutdown(0);
-                }
+                            /// <summary>
+                            /// Handles the exit request from the tray icon context menu.
+                            /// </summary>
+                            private void OnExitRequested(object? sender, EventArgs e)
+                            {
+                                Log.Information("Exit requested from tray icon menu");
+                                Shutdown(0);
+                            }
 
-                /// <summary>
-                /// Handles application shutdown and cleanup.
-                /// </summary>
-                /// <param name="e">Exit event arguments.</param>
-                protected override void OnExit(ExitEventArgs e)
+                            /// <summary>
+                            /// Handles the hotkey configuration request from the tray icon context menu.
+                            /// </summary>
+                            private void OnHotkeyConfigRequested(object? sender, EventArgs e)
+                            {
+                                Log.Debug("Hotkey configuration requested from tray icon menu");
+                                ShowHotkeyConfigWindow();
+                            }
+
+                            /// <summary>
+                            /// Shows the hotkey configuration window.
+                            /// </summary>
+                            private void ShowHotkeyConfigWindow()
+                            {
+                                try
+                                {
+                                    var hotkeyConfigWindow = Services.GetRequiredService<Views.HotkeyConfigWindow>();
+                                    hotkeyConfigWindow.Owner = MainWindow;
+                                    hotkeyConfigWindow.ShowDialog();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(ex, "Failed to show hotkey configuration window");
+                                    MessageBox.Show(
+                                        $"Failed to open hotkey configuration:\n\n{ex.Message}",
+                                        "Error",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Error);
+                                }
+                            }
+
+                            /// <summary>
+                            /// Handles application shutdown and cleanup.
+                            /// </summary>
+                            /// <param name="e">Exit event arguments.</param>
+                            protected override void OnExit(ExitEventArgs e)
                 {
                     try
                     {
@@ -150,6 +182,7 @@ namespace SystemTrayProcessManager.UI
                                     Log.Debug("Disposing tray icon service...");
                                     _trayIconService.TrayIconClicked -= OnTrayIconClicked;
                                     _trayIconService.ExitRequested -= OnExitRequested;
+                                    _trayIconService.HotkeyConfigRequested -= OnHotkeyConfigRequested;
                                     _trayIconService.Dispose();
                                     _trayIconService = null;
                                 }
@@ -345,21 +378,18 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IProcessService, ProcessMonitorService>();
                             services.AddSingleton<IWindowService, WindowManipulationService>();
                             services.AddSingleton<IAudioService, AudioManagerService>();
+                            services.AddSingleton<IHotkeyService, HotkeyManagerService>();
+                            services.AddSingleton<IHotkeyConfigurationService, HotkeyConfigurationService>();
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
 
+                            // Register ViewModels
+                            services.AddTransient<ViewModels.HotkeyConfigViewModel>();
+
                             // Register windows
                             services.AddTransient<MainWindow>();
-
-                            // TODO: Register additional services from Infrastructure project as they are created
-                            // Example:
-                            // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
-
-                            // TODO: Register ViewModels as they are created
-                            // Example:
-                            // services.AddTransient<MainViewModel>();
-                            // services.AddTransient<SettingsViewModel>();
+                            services.AddTransient<Views.HotkeyConfigWindow>();
 
                             var serviceProvider = services.BuildServiceProvider();
 

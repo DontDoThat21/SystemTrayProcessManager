@@ -1,12 +1,12 @@
-Phase 3, Task 3.1 Low-Level Keyboard Hook is complete.
+Phase 3, Task 3.2 Hotkey Configuration UI is complete.
 ​
-Begin implementing Task 3.2 Hotkey Configuration UI
+Begin implementing Task 3.3 Action Mapping System
 
 Follow the AGENT.md standards and rules.
 Refer to the .claude.md (SystemTrayProcessManager folder) and app.spec.md file for the feature list (SystemTrayProcessManager\documentation folder).
 
 First create task-{num}-design.md, task-{num}-review.md and task-{num}-summary.md documents, in the documentation folder for your task.
-Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 3.2 Hotkey Configuration UI)
+Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 3.3 Action Mapping System)
 ​
 Have reviewer.claude.md review it.
 Include unit test code coverage via xUnit

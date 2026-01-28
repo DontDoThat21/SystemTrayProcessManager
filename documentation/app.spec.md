@@ -73,10 +73,10 @@
 - Hotkey registration system
 - Support for modifier keys (Ctrl, Alt, Shift, Win)
 - Key combination tracking
-- Conflict detection
-- Optional key suppression
-- Asynchronous action execution
-- Fallback to RegisterHotKey API
+    - Conflict detection
+        - Optional key suppression
+            - Asynchronous action execution
+                - Fallback to RegisterHotKey API
 - Performance target: <50ms response time
 
 #### 3.2 Hotkey Configuration UI
