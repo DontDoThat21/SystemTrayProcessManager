@@ -413,6 +413,15 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IStartupService, StartupService>();
                             services.AddSingleton<IProcessGroupService, ProcessGroupService>();
 
+                            // Register Smart Features services
+                            services.AddSingleton<IFocusHistoryService, FocusHistoryService>();
+                            services.AddSingleton<IFullscreenDetectorService, FullscreenDetectorService>();
+                            services.AddSingleton<IWindowPositionService, WindowPositionService>();
+                            services.AddSingleton<IProcessPriorityService, ProcessPriorityService>();
+                            services.AddSingleton<IGamingModeService, GamingModeService>();
+                            services.AddSingleton<IStartupManagerService, StartupManagerService>();
+                            services.AddSingleton<ISmartFeaturesService, SmartFeaturesService>();
+
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
 
