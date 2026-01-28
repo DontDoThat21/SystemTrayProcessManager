@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using System;
 using System.IO;
 using System.Threading;
-using System.Windows;
 using System.Windows.Threading;
+using SystemTrayProcessManager.Core.Services;
+using SystemTrayProcessManager.UI.Services;
 
 namespace SystemTrayProcessManager.UI
 {
@@ -15,10 +15,11 @@ namespace SystemTrayProcessManager.UI
     public partial class App : Application
     {
         private const string MutexName = "Global\\SystemTrayProcessManager_SingleInstance_4E9F2A1B";
-        
+
         private IServiceProvider? _serviceProvider;
         private Mutex? _instanceMutex;
         private bool _mutexCreated;
+        private ITrayIconService? _trayIconService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -50,61 +51,111 @@ namespace SystemTrayProcessManager.UI
                     return;
                 }
 
-                Log.Information("Single instance check passed.");
+                        Log.Information("Single instance check passed.");
 
-                // Step 3: Configure global exception handlers
-                ConfigureExceptionHandlers();
+                        // Step 3: Configure global exception handlers
+                        ConfigureExceptionHandlers();
 
-                Log.Information("Exception handlers configured.");
+                        Log.Information("Exception handlers configured.");
 
-                // Step 4: Configure dependency injection
-                _serviceProvider = ConfigureServices();
+                        // Step 4: Configure dependency injection
+                        _serviceProvider = ConfigureServices();
 
-                Log.Information("Dependency injection configured.");
+                        Log.Information("Dependency injection configured.");
 
-                // Step 5: Initialize and show main window
-                var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-                mainWindow.Show();
+                        // Step 5: Initialize system tray icon
+                        _trayIconService = _serviceProvider.GetRequiredService<ITrayIconService>();
+                        _trayIconService.Initialize();
+                        _trayIconService.TrayIconClicked += OnTrayIconClicked;
+                        _trayIconService.ExitRequested += OnExitRequested;
 
-                Log.Information("Application startup completed successfully.");
+                        Log.Information("System tray icon initialized.");
 
-                base.OnStartup(e);
-            }
-            catch (Exception ex)
-            {
-                Log.Fatal(ex, "Fatal error during application startup");
-                
-                MessageBox.Show(
-                    $"A fatal error occurred during startup:\n\n{ex.Message}\n\nThe application will now close.",
-                    "Startup Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                
-                Shutdown(2);
-            }
-        }
+                        // Step 6: Initialize and show main window
+                        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+                        MainWindow = mainWindow;
+                        mainWindow.Show();
 
-        /// <summary>
-        /// Handles application shutdown and cleanup.
-        /// </summary>
-        /// <param name="e">Exit event arguments.</param>
-        protected override void OnExit(ExitEventArgs e)
-        {
-            try
-            {
-                Log.Information("Application shutting down...");
+                        // Show startup notification
+                        _trayIconService.ShowBalloonTip(
+                            "SystemTray Process Manager",
+                            "Application is running in the system tray.",
+                            Core.Enums.BalloonIcon.Info,
+                            3000);
 
-                // Dispose services
-                if (_serviceProvider is IDisposable disposable)
-                {
-                    Log.Debug("Disposing service provider...");
-                    disposable.Dispose();
+                        Log.Information("Application startup completed successfully.");
+
+                        base.OnStartup(e);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Fatal(ex, "Fatal error during application startup");
+
+                        MessageBox.Show(
+                            $"A fatal error occurred during startup:\n\n{ex.Message}\n\nThe application will now close.",
+                            "Startup Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+
+                        Shutdown(2);
+                    }
                 }
 
-                // Release mutex
-                if (_mutexCreated && _instanceMutex != null)
+                /// <summary>
+                /// Handles the tray icon click event - shows and activates the main window.
+                /// </summary>
+                private void OnTrayIconClicked(object? sender, EventArgs e)
                 {
-                    Log.Debug("Releasing instance mutex...");
+                    Log.Debug("Tray icon clicked - showing main window");
+
+                    if (MainWindow != null)
+                    {
+                        MainWindow.Show();
+                        MainWindow.WindowState = WindowState.Normal;
+                        MainWindow.Activate();
+                    }
+                }
+
+                /// <summary>
+                /// Handles the exit request from the tray icon context menu.
+                /// </summary>
+                private void OnExitRequested(object? sender, EventArgs e)
+                {
+                    Log.Information("Exit requested from tray icon menu");
+                    Shutdown(0);
+                }
+
+                /// <summary>
+                /// Handles application shutdown and cleanup.
+                /// </summary>
+                /// <param name="e">Exit event arguments.</param>
+                protected override void OnExit(ExitEventArgs e)
+                {
+                    try
+                    {
+                        Log.Information("Application shutting down...");
+
+                        // Unsubscribe from tray events and dispose
+                        if (_trayIconService != null)
+                        {
+                            Log.Debug("Disposing tray icon service...");
+                            _trayIconService.TrayIconClicked -= OnTrayIconClicked;
+                            _trayIconService.ExitRequested -= OnExitRequested;
+                            _trayIconService.Dispose();
+                            _trayIconService = null;
+                        }
+
+                        // Dispose services
+                        if (_serviceProvider is IDisposable disposable)
+                        {
+                            Log.Debug("Disposing service provider...");
+                            disposable.Dispose();
+                        }
+
+                        // Release mutex
+                        if (_mutexCreated && _instanceMutex != null)
+                        {
+                            Log.Debug("Releasing instance mutex...");
                     _instanceMutex.ReleaseMutex();
                     _instanceMutex.Dispose();
                 }
@@ -256,42 +307,45 @@ namespace SystemTrayProcessManager.UI
             }
         }
 
-        /// <summary>
-        /// Configures the dependency injection container and registers all services.
-        /// </summary>
-        /// <returns>Configured service provider.</returns>
-        private IServiceProvider ConfigureServices()
-        {
-            var services = new ServiceCollection();
+                /// <summary>
+                /// Configures the dependency injection container and registers all services.
+                /// </summary>
+                /// <returns>Configured service provider.</returns>
+                private IServiceProvider ConfigureServices()
+                {
+                    var services = new ServiceCollection();
 
-            // Register logging
-            services.AddLogging(loggingBuilder =>
-            {
-                loggingBuilder.ClearProviders();
-                loggingBuilder.AddSerilog(dispose: true);
-            });
+                    // Register logging
+                    services.AddLogging(loggingBuilder =>
+                    {
+                        loggingBuilder.ClearProviders();
+                        loggingBuilder.AddSerilog(dispose: true);
+                    });
 
-            // Register windows
-            services.AddTransient<MainWindow>();
+                    // Register UI services
+                    services.AddSingleton<ITrayIconService, TrayIconService>();
 
-            // TODO: Register services from Infrastructure project as they are created
-            // Example:
-            // services.AddSingleton<IProcessService, ProcessMonitorService>();
-            // services.AddSingleton<IWindowService, WindowManipulationService>();
-            // services.AddSingleton<IAudioService, AudioManagerService>();
-            // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
+                    // Register windows
+                    services.AddTransient<MainWindow>();
 
-            // TODO: Register ViewModels as they are created
-            // Example:
-            // services.AddTransient<MainViewModel>();
-            // services.AddTransient<SettingsViewModel>();
+                    // TODO: Register services from Infrastructure project as they are created
+                    // Example:
+                    // services.AddSingleton<IProcessService, ProcessMonitorService>();
+                    // services.AddSingleton<IWindowService, WindowManipulationService>();
+                    // services.AddSingleton<IAudioService, AudioManagerService>();
+                    // services.AddSingleton<IHotkeyService, HotkeyManagerService>();
 
-            var serviceProvider = services.BuildServiceProvider();
+                    // TODO: Register ViewModels as they are created
+                    // Example:
+                    // services.AddTransient<MainViewModel>();
+                    // services.AddTransient<SettingsViewModel>();
 
-            // Log registered services (useful for debugging)
-            Log.Debug("Service provider built with {Count} services", services.Count);
+                    var serviceProvider = services.BuildServiceProvider();
 
-            return serviceProvider;
+                    // Log registered services (useful for debugging)
+                    Log.Debug("Service provider built with {Count} services", services.Count);
+
+                    return serviceProvider;
+                }
+            }
         }
-    }
-}

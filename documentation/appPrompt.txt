@@ -1,12 +1,12 @@
-Phase 1, Task <<__>> is complete.
+Phase 1, Task 2: System Tray Integration is complete.
 ​
-Begin implementing Task 1: Project Setup & Architecture
+Begin implementing Task 3: Process Discovery & Monitoring
 
 Follow the AGENT.md standards and rules.
 Refer to the .claude.md (SystemTrayProcessManager folder) and app.spec.md file for the feature list (SystemTrayProcessManager\documentation folder).
 
 First create task-{num}-design.md, task-{num}-review.md and task-{num}-summary.md documents, in the documentation folder for your task.
-Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 1: Project Setup & Architecture)
+Using wpf-engineer.claude.md, (SystemTrayProcessManager\claude\skills folder), design and implement the next feature in the app.spec.md (Task 3: Process Discovery & Monitoring)
 ​
 Have reviewer.claude.md review it.
 Include unit test code coverage via xUnit

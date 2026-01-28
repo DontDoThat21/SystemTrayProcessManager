@@ -12,17 +12,53 @@
         MinWidth="600"
         WindowStartupLocation="CenterScreen">
     <Grid>
-        <TextBlock Text="SystemTray Process Manager" 
-                   FontSize="24"
-                   FontWeight="Bold"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#333"/>
-        <TextBlock Text="Infrastructure ready. UI features coming in Phase 2."
-                   FontSize="14"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Margin="0,50,0,0"
-                   Foreground="#666"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#0078D4" Padding="20">
+            <TextBlock Text="SystemTray Process Manager" 
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="White"/>
+        </Border>
+
+        <!-- Main Content -->
+        <StackPanel Grid.Row="1" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Center">
+            <TextBlock Text="🎉 System Tray Integration Complete!"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"
+                       Foreground="#333"/>
+            <TextBlock Text="Try the following:"
+                       FontSize="14"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10"
+                       Foreground="#666"/>
+            <StackPanel Margin="0,10,0,0" HorizontalAlignment="Center">
+                <TextBlock Text="• Minimize this window to hide to system tray" 
+                           FontSize="14" Foreground="#444" Margin="0,5"/>
+                <TextBlock Text="• Click the tray icon to restore the window" 
+                           FontSize="14" Foreground="#444" Margin="0,5"/>
+                <TextBlock Text="• Right-click the tray icon for context menu" 
+                           FontSize="14" Foreground="#444" Margin="0,5"/>
+                <TextBlock Text="• Select 'Exit' from the tray menu to close" 
+                           FontSize="14" Foreground="#444" Margin="0,5"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#F5F5F5" Padding="10">
+            <TextBlock Text="Phase 1 - Task 2: System Tray Integration ✅"
+                       FontSize="12"
+                       Foreground="#888"
+                       HorizontalAlignment="Center"/>
+        </Border>
     </Grid>
 </Window>
