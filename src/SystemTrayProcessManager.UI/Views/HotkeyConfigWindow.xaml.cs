@@ -125,11 +125,5 @@ namespace SystemTrayProcessManager.UI.Views
         {
             throw new NotImplementedException();
         }
+        }
     }
-}
-
-namespace SystemTrayProcessManager.UI.Views
-{
-    // Alias for the converter to use in XAML x:Static binding
-    using local = SystemTrayProcessManager.UI.Views;
-}
