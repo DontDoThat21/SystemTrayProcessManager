@@ -8,6 +8,7 @@ using SystemTrayProcessManager.Core.Services;
 using SystemTrayProcessManager.Infrastructure.Helpers;
 using SystemTrayProcessManager.Infrastructure.Services;
 using SystemTrayProcessManager.UI.Controls;
+using SystemTrayProcessManager.UI.Helpers;
 using SystemTrayProcessManager.UI.Services;
 using SystemTrayProcessManager.UI.ViewModels;
 using SystemTrayProcessManager.UI.Views;
@@ -75,7 +76,12 @@ namespace SystemTrayProcessManager.UI
                         // Step 4a: Store crash reporter for exception handlers
                         _crashReporterService = _serviceProvider.GetRequiredService<ICrashReporterService>();
 
-                        // Step 4b: Load application settings
+                        // Step 4b: Initialize tooltip helper for UI tooltips
+                        var tooltipService = _serviceProvider.GetRequiredService<ITooltipService>();
+                        TooltipHelper.Initialize(tooltipService);
+                        Log.Information("Tooltip helper initialized.");
+
+                        // Step 4c: Load application settings
                         _configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
                         var settings = _configurationService.LoadSettingsAsync().GetAwaiter().GetResult();
                         Log.Information("Application settings loaded: {Settings}", settings);
@@ -527,6 +533,9 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<ICrashReporterService, CrashReporterService>();
                             services.AddSingleton<IErrorHandlingService, ErrorHandlingService>();
                             services.AddSingleton<IElevationService, ElevationService>();
+
+                            // Register Documentation & Distribution services
+                            services.AddSingleton<ITooltipService, TooltipService>();
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();

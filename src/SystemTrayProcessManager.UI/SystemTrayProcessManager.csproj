@@ -9,6 +9,23 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>SystemTrayProcessManager</AssemblyName>
     <RootNamespace>SystemTrayProcessManager.UI</RootNamespace>
+
+    <!-- Version Information -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+
+    <!-- Product Information -->
+    <Product>SystemTray Process Manager</Product>
+    <Company>Portfolio Project</Company>
+    <Authors>DontDoThat21</Authors>
+    <Copyright>Copyright 2026</Copyright>
+    <Description>Advanced Windows process management with global hotkeys, per-process audio control, and window manipulation.</Description>
+
+    <!-- Publishing Options -->
+    <RepositoryUrl>https://github.com/DontDoThat21/SystemTrayProcessManager</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
