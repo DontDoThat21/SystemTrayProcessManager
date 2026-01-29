@@ -30,6 +30,7 @@ namespace SystemTrayProcessManager.UI
         private IActionMappingService? _actionMappingService;
         private IConfigurationService? _configurationService;
         private ICrashReporterService? _crashReporterService;
+        private IPerformanceMonitorService? _performanceMonitorService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -73,20 +74,25 @@ namespace SystemTrayProcessManager.UI
 
                         Log.Information("Dependency injection configured.");
 
-                        // Step 4a: Store crash reporter for exception handlers
+                        // Step 4a: Initialize performance monitoring and start startup timer
+                        _performanceMonitorService = _serviceProvider.GetRequiredService<IPerformanceMonitorService>();
+                        _performanceMonitorService.StartStartupTimer();
+                        Log.Debug("Performance monitoring startup timer started.");
+
+                        // Step 4b: Store crash reporter for exception handlers
                         _crashReporterService = _serviceProvider.GetRequiredService<ICrashReporterService>();
 
-                        // Step 4b: Initialize tooltip helper for UI tooltips
+                        // Step 4c: Initialize tooltip helper for UI tooltips
                         var tooltipService = _serviceProvider.GetRequiredService<ITooltipService>();
                         TooltipHelper.Initialize(tooltipService);
                         Log.Information("Tooltip helper initialized.");
 
-                        // Step 4c: Load application settings
+                        // Step 4d: Load application settings
                         _configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
                         var settings = _configurationService.LoadSettingsAsync().GetAwaiter().GetResult();
                         Log.Information("Application settings loaded: {Settings}", settings);
 
-                        // Step 4c: Check for first run and show wizard
+                        // Step 4e: Check for first run and show wizard
                         if (settings.IsFirstRun)
                         {
                             Log.Information("First run detected, showing wizard");
@@ -99,11 +105,17 @@ namespace SystemTrayProcessManager.UI
                             }
                         }
 
-                        // Step 5: Initialize process service and start monitoring
+                        // Step 5: Initialize process service with configured polling interval
                         _processService = _serviceProvider.GetRequiredService<IProcessService>();
+                        _processService.UpdatePollingInterval(settings.ProcessRefreshIntervalMs);
                         _processService.StartMonitoring();
 
-                        Log.Information("Process monitoring service started.");
+                        // Update performance monitor with process stats
+                        _performanceMonitorService.UpdateProcessRefreshInterval(settings.ProcessRefreshIntervalMs);
+                        _performanceMonitorService.UpdateTrackedProcessCount(_processService.TrackedProcessCount);
+
+                        Log.Information("Process monitoring service started with {Interval}ms interval.", 
+                            settings.ProcessRefreshIntervalMs);
 
                         // Step 6: Initialize system tray icon
                         _trayIconService = _serviceProvider.GetRequiredService<ITrayIconService>();
@@ -134,6 +146,16 @@ namespace SystemTrayProcessManager.UI
                         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
                         MainWindow = mainWindow;
                         mainWindow.Show();
+
+                        // Step 8a: Record startup complete and update icon cache stats
+                        _performanceMonitorService.RecordStartupComplete();
+                        var iconExtractor = _serviceProvider.GetRequiredService<IIconExtractor>();
+                        _performanceMonitorService.UpdateIconCacheStats(
+                            iconExtractor.CachedIconCount, 
+                            iconExtractor.MaxCacheSize);
+
+                        // Start performance monitoring (5 second interval)
+                        _performanceMonitorService.StartMonitoring(TimeSpan.FromSeconds(5));
 
                         // Show startup notification
                         _trayIconService.ShowBalloonTip(
@@ -284,6 +306,22 @@ namespace SystemTrayProcessManager.UI
                                             _actionMappingService.Shutdown();
                                             _actionMappingService.Dispose();
                                             _actionMappingService = null;
+                                        }
+
+                                        // Stop and dispose performance monitor service
+                                        if (_performanceMonitorService != null)
+                                        {
+                                            Log.Debug("Stopping performance monitoring...");
+
+                                            // Log final metrics before disposing
+                                            var finalMetrics = _performanceMonitorService.GetCurrentMetrics();
+                                            Log.Information(
+                                                "Final performance metrics: {Metrics}", 
+                                                finalMetrics.ToString());
+
+                                            _performanceMonitorService.StopMonitoring();
+                                            _performanceMonitorService.Dispose();
+                                            _performanceMonitorService = null;
                                         }
 
                                         // Dispose services
@@ -533,6 +571,9 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<ICrashReporterService, CrashReporterService>();
                             services.AddSingleton<IErrorHandlingService, ErrorHandlingService>();
                             services.AddSingleton<IElevationService, ElevationService>();
+
+                            // Register Performance Optimization services
+                            services.AddSingleton<IPerformanceMonitorService, PerformanceMonitorService>();
 
                             // Register Documentation & Distribution services
                             services.AddSingleton<ITooltipService, TooltipService>();

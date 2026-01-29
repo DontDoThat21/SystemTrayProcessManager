@@ -4,7 +4,7 @@ namespace SystemTrayProcessManager.Core.Services
 {
     /// <summary>
     /// Provides functionality for extracting icons from executable files and window handles.
-    /// Implements caching to improve performance for repeated icon requests.
+    /// Implements LRU caching to improve performance for repeated icon requests.
     /// </summary>
     public interface IIconExtractor : IDisposable
     {
@@ -32,5 +32,26 @@ namespace SystemTrayProcessManager.Core.Services
         /// Gets the current number of icons in the cache.
         /// </summary>
         int CachedIconCount { get; }
+
+        /// <summary>
+        /// Gets the maximum cache capacity.
+        /// </summary>
+        int MaxCacheSize { get; }
+
+        /// <summary>
+        /// Gets the total number of cache hits.
+        /// </summary>
+        long CacheHits { get; }
+
+        /// <summary>
+        /// Gets the total number of cache misses.
+        /// </summary>
+        long CacheMisses { get; }
+
+        /// <summary>
+        /// Gets the cache hit rate (0.0 to 1.0).
+        /// Returns 0.0 if no cache accesses have been made.
+        /// </summary>
+        double CacheHitRate { get; }
     }
 }

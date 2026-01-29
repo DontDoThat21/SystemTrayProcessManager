@@ -13,18 +13,42 @@ using WpfImageSource = System.Windows.Media.ImageSource;
 namespace SystemTrayProcessManager.Infrastructure.Helpers
 {
     /// <summary>
-    /// Extracts icons from executable files and window handles with caching support.
-    /// Uses Shell32 API for reliable icon extraction.
+    /// Extracts icons from executable files and window handles with LRU caching support.
+    /// Uses Shell32 API for reliable icon extraction with access-time-based eviction.
     /// </summary>
     public sealed class IconExtractor : IIconExtractor
     {
         private readonly ILogger<IconExtractor> _logger;
-        private readonly ConcurrentDictionary<string, WpfImageSource> _iconCache;
+        private readonly ConcurrentDictionary<string, IconCacheEntry> _iconCache;
         private readonly int _maxCacheSize;
+        private readonly object _evictionLock = new();
+        private long _cacheHits;
+        private long _cacheMisses;
         private bool _disposed;
 
         /// <inheritdoc/>
         public int CachedIconCount => _iconCache.Count;
+
+        /// <inheritdoc/>
+        public int MaxCacheSize => _maxCacheSize;
+
+        /// <inheritdoc/>
+        public long CacheHits => Interlocked.Read(ref _cacheHits);
+
+        /// <inheritdoc/>
+        public long CacheMisses => Interlocked.Read(ref _cacheMisses);
+
+        /// <inheritdoc/>
+        public double CacheHitRate
+        {
+            get
+            {
+                var hits = CacheHits;
+                var misses = CacheMisses;
+                var total = hits + misses;
+                return total > 0 ? (double)hits / total : 0.0;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IconExtractor"/> class.
@@ -35,8 +59,8 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
         public IconExtractor(ILogger<IconExtractor> logger, int maxCacheSize = 100)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _maxCacheSize = maxCacheSize;
-            _iconCache = new ConcurrentDictionary<string, WpfImageSource>(StringComparer.OrdinalIgnoreCase);
+            _maxCacheSize = Math.Max(10, maxCacheSize); // Minimum cache size of 10
+            _iconCache = new ConcurrentDictionary<string, IconCacheEntry>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc/>
@@ -55,12 +79,18 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
 
             try
             {
-                // Check cache first
-                if (_iconCache.TryGetValue(executablePath, out var cachedIcon))
+                // Check cache first with LRU access tracking
+                if (_iconCache.TryGetValue(executablePath, out var cacheEntry))
                 {
-                    _logger.LogDebug("Cache hit for icon: {Path}", executablePath);
-                    return cachedIcon;
+                    cacheEntry.RecordAccess();
+                    Interlocked.Increment(ref _cacheHits);
+                    _logger.LogDebug("Cache hit for icon: {Path} (accesses: {Count})", 
+                        executablePath, cacheEntry.AccessCount);
+                    return cacheEntry.Icon;
                 }
+
+                // Cache miss
+                Interlocked.Increment(ref _cacheMisses);
 
                 // Verify file exists
                 if (!File.Exists(executablePath))
@@ -86,8 +116,8 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
                     return null;
                 }
 
-                // Add to cache (with eviction if needed)
-                AddToCache(executablePath, imageSource);
+                // Add to cache with LRU eviction if needed
+                AddToCacheWithLruEviction(executablePath, imageSource);
 
                 _logger.LogDebug("Extracted and cached icon for: {Path}", executablePath);
                 return imageSource;
@@ -147,6 +177,7 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
                 return null;
             }
         }
+
 
         /// <inheritdoc/>
         public void ClearCache()
@@ -259,24 +290,58 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
         }
 
         /// <summary>
-        /// Adds an icon to the cache, evicting oldest entries if necessary.
+        /// Adds an icon to the cache with LRU eviction when capacity is reached.
+        /// Evicts the oldest 25% of entries based on last access time.
         /// </summary>
-        private void AddToCache(string key, WpfImageSource imageSource)
+        private void AddToCacheWithLruEviction(string key, WpfImageSource imageSource)
         {
-            // Simple eviction: if cache is full, clear half of it
-            // A more sophisticated LRU could be implemented if needed
+            // Check if eviction is needed
             if (_iconCache.Count >= _maxCacheSize)
             {
-                var keysToRemove = _iconCache.Keys.Take(_maxCacheSize / 2).ToList();
-                foreach (var keyToRemove in keysToRemove)
+                lock (_evictionLock)
                 {
-                    _iconCache.TryRemove(keyToRemove, out _);
+                    // Double-check after acquiring lock
+                    if (_iconCache.Count >= _maxCacheSize)
+                    {
+                        PerformLruEviction();
+                    }
                 }
-
-                _logger.LogDebug("Evicted {Count} icons from cache", keysToRemove.Count);
             }
 
-            _iconCache.TryAdd(key, imageSource);
+            var entry = new IconCacheEntry(imageSource);
+            _iconCache.TryAdd(key, entry);
+        }
+
+        /// <summary>
+        /// Evicts the oldest 25% of cache entries based on last access time.
+        /// </summary>
+        private void PerformLruEviction()
+        {
+            try
+            {
+                var evictionCount = Math.Max(1, _maxCacheSize / 4); // Evict 25%
+
+                // Get entries sorted by last access time (oldest first)
+                var entriesToEvict = _iconCache
+                    .OrderBy(kvp => kvp.Value.LastAccessTime)
+                    .Take(evictionCount)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var key in entriesToEvict)
+                {
+                    _iconCache.TryRemove(key, out _);
+                }
+
+                _logger.LogDebug(
+                    "LRU eviction: removed {EvictedCount} oldest entries from icon cache (remaining: {Remaining})",
+                    entriesToEvict.Count,
+                    _iconCache.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error during LRU cache eviction");
+            }
         }
 
         #region P/Invoke Declarations
@@ -316,5 +381,56 @@ namespace SystemTrayProcessManager.Infrastructure.Helpers
         private static extern bool DeleteObject(IntPtr hObject);
 
         #endregion
+    }
+
+    /// <summary>
+    /// Represents a cached icon with access tracking for LRU eviction.
+    /// </summary>
+    internal sealed class IconCacheEntry
+    {
+        private DateTime _lastAccessTime;
+        private int _accessCount;
+
+        /// <summary>
+        /// Gets the cached icon.
+        /// </summary>
+        public WpfImageSource Icon { get; }
+
+        /// <summary>
+        /// Gets the time this entry was created.
+        /// </summary>
+        public DateTime CreatedTime { get; }
+
+        /// <summary>
+        /// Gets the time this entry was last accessed.
+        /// </summary>
+        public DateTime LastAccessTime => _lastAccessTime;
+
+        /// <summary>
+        /// Gets the number of times this entry has been accessed.
+        /// </summary>
+        public int AccessCount => _accessCount;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IconCacheEntry"/> class.
+        /// </summary>
+        /// <param name="icon">The icon to cache.</param>
+        /// <exception cref="ArgumentNullException">Thrown when icon is null.</exception>
+        public IconCacheEntry(WpfImageSource icon)
+        {
+            Icon = icon ?? throw new ArgumentNullException(nameof(icon));
+            CreatedTime = DateTime.UtcNow;
+            _lastAccessTime = CreatedTime;
+            _accessCount = 1;
+        }
+
+        /// <summary>
+        /// Records an access to this cache entry, updating the last access time.
+        /// </summary>
+        public void RecordAccess()
+        {
+            _lastAccessTime = DateTime.UtcNow;
+            Interlocked.Increment(ref _accessCount);
+        }
     }
 }

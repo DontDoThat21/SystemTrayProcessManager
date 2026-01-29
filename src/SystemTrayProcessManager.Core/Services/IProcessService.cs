@@ -35,7 +35,7 @@ namespace SystemTrayProcessManager.Core.Services
 
         /// <summary>
         /// Starts background monitoring of process changes.
-        /// The service will poll for changes at a 5-second interval and raise events when processes start or stop.
+        /// The service will poll for changes at the configured interval and raise events when processes start or stop.
         /// </summary>
         void StartMonitoring();
 
@@ -45,9 +45,25 @@ namespace SystemTrayProcessManager.Core.Services
         void StopMonitoring();
 
         /// <summary>
+        /// Updates the polling interval for process monitoring.
+        /// </summary>
+        /// <param name="intervalMs">The new polling interval in milliseconds (1000-30000).</param>
+        void UpdatePollingInterval(int intervalMs);
+
+        /// <summary>
+        /// Gets the current polling interval in milliseconds.
+        /// </summary>
+        int PollingIntervalMs { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the service is currently monitoring for process changes.
         /// </summary>
         bool IsMonitoring { get; }
+
+        /// <summary>
+        /// Gets the number of processes currently being tracked.
+        /// </summary>
+        int TrackedProcessCount { get; }
 
         /// <summary>
         /// Occurs when a new process with a visible window is detected.

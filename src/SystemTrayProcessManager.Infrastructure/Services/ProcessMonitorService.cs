@@ -16,16 +16,26 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         private readonly ILogger<ProcessMonitorService> _logger;
         private readonly IIconExtractor _iconExtractor;
         private readonly ConcurrentDictionary<int, ProcessInfo> _trackedProcesses;
-        private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(5);
         private readonly HashSet<string> _excludedProcessNames;
+        private readonly object _monitorLock = new();
 
+        private const int MinPollingIntervalMs = 1000;
+        private const int MaxPollingIntervalMs = 30000;
+        private const int DefaultPollingIntervalMs = 5000;
+
+        private TimeSpan _pollingInterval;
         private Timer? _monitorTimer;
         private bool _disposed;
-        private readonly object _monitorLock = new();
         private int _currentProcessId;
 
         /// <inheritdoc/>
         public bool IsMonitoring { get; private set; }
+
+        /// <inheritdoc/>
+        public int PollingIntervalMs => (int)_pollingInterval.TotalMilliseconds;
+
+        /// <inheritdoc/>
+        public int TrackedProcessCount => _trackedProcesses.Count;
 
         /// <inheritdoc/>
         public event EventHandler<ProcessInfo>? ProcessStarted;
@@ -50,6 +60,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             _iconExtractor = iconExtractor ?? throw new ArgumentNullException(nameof(iconExtractor));
             _trackedProcesses = new ConcurrentDictionary<int, ProcessInfo>();
             _currentProcessId = Environment.ProcessId;
+            _pollingInterval = TimeSpan.FromMilliseconds(DefaultPollingIntervalMs);
 
             // System processes to always exclude
             _excludedProcessNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -61,6 +72,51 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                 "SystemSettings", "SecurityHealthSystray", "SecurityHealthService",
                 "System", "Idle", "Registry", "Memory Compression"
             };
+        }
+
+        /// <inheritdoc/>
+        public void UpdatePollingInterval(int intervalMs)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // Clamp to valid range
+            if (intervalMs < MinPollingIntervalMs)
+            {
+                _logger.LogWarning(
+                    "Polling interval {Requested}ms is below minimum, using {Min}ms",
+                    intervalMs, MinPollingIntervalMs);
+                intervalMs = MinPollingIntervalMs;
+            }
+            else if (intervalMs > MaxPollingIntervalMs)
+            {
+                _logger.LogWarning(
+                    "Polling interval {Requested}ms is above maximum, using {Max}ms",
+                    intervalMs, MaxPollingIntervalMs);
+                intervalMs = MaxPollingIntervalMs;
+            }
+
+            lock (_monitorLock)
+            {
+                _pollingInterval = TimeSpan.FromMilliseconds(intervalMs);
+
+                // If monitoring is active, update the timer
+                if (IsMonitoring && _monitorTimer != null)
+                {
+                    _monitorTimer.Change(_pollingInterval, _pollingInterval);
+                    _logger.LogInformation(
+                        "Process polling interval updated to {Interval}ms",
+                        intervalMs);
+                }
+                else
+                {
+                    _logger.LogDebug(
+                        "Process polling interval set to {Interval}ms (will apply when monitoring starts)",
+                        intervalMs);
+                }
+            }
         }
 
         /// <inheritdoc/>
