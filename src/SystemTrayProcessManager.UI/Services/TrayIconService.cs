@@ -32,6 +32,9 @@ namespace SystemTrayProcessManager.UI.Services
         /// <inheritdoc/>
         public event EventHandler? HotkeyConfigRequested;
 
+        /// <inheritdoc/>
+        public event EventHandler? SettingsRequested;
+
         /// <summary>
         /// Occurs when a process is selected from the context menu.
         /// </summary>
@@ -202,9 +205,14 @@ namespace SystemTrayProcessManager.UI.Services
             menu.Items.Add(showWindowItem);
 
             // Hotkey Configuration
-            var hotkeyConfigItem = new ToolStripMenuItem("⌨️ Hotkey Configuration");
+            var hotkeyConfigItem = new ToolStripMenuItem("Hotkey Configuration");
             hotkeyConfigItem.Click += OnHotkeyConfigClicked;
             menu.Items.Add(hotkeyConfigItem);
+
+            // Settings
+            var settingsItem = new ToolStripMenuItem("Settings");
+            settingsItem.Click += OnSettingsClicked;
+            menu.Items.Add(settingsItem);
 
             // Separator for process list
             menu.Items.Add(new ToolStripSeparator());
@@ -537,6 +545,15 @@ namespace SystemTrayProcessManager.UI.Services
         {
             _logger.LogDebug("Hotkey Configuration menu item clicked");
             HotkeyConfigRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Handles the Settings menu item click.
+        /// </summary>
+        private void OnSettingsClicked(object? sender, EventArgs e)
+        {
+            _logger.LogDebug("Settings menu item clicked");
+            SettingsRequested?.Invoke(this, EventArgs.Empty);
         }
 
                 /// <inheritdoc/>

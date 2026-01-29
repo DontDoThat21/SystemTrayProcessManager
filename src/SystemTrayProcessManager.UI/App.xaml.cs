@@ -10,6 +10,7 @@ using SystemTrayProcessManager.Infrastructure.Services;
 using SystemTrayProcessManager.UI.Controls;
 using SystemTrayProcessManager.UI.Services;
 using SystemTrayProcessManager.UI.ViewModels;
+using SystemTrayProcessManager.UI.Views;
 
 namespace SystemTrayProcessManager.UI
 {
@@ -26,6 +27,7 @@ namespace SystemTrayProcessManager.UI
         private ITrayIconService? _trayIconService;
         private IProcessService? _processService;
         private IActionMappingService? _actionMappingService;
+        private IConfigurationService? _configurationService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -69,6 +71,24 @@ namespace SystemTrayProcessManager.UI
 
                         Log.Information("Dependency injection configured.");
 
+                        // Step 4b: Load application settings
+                        _configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
+                        var settings = _configurationService.LoadSettingsAsync().GetAwaiter().GetResult();
+                        Log.Information("Application settings loaded: {Settings}", settings);
+
+                        // Step 4c: Check for first run and show wizard
+                        if (settings.IsFirstRun)
+                        {
+                            Log.Information("First run detected, showing wizard");
+                            var wizard = _serviceProvider.GetRequiredService<FirstRunWizard>();
+                            wizard.ShowDialog();
+                            if (wizard.WizardCompleted && wizard.ConfiguredSettings != null)
+                            {
+                                settings = wizard.ConfiguredSettings;
+                                Log.Information("First-run wizard completed");
+                            }
+                        }
+
                         // Step 5: Initialize process service and start monitoring
                         _processService = _serviceProvider.GetRequiredService<IProcessService>();
                         _processService.StartMonitoring();
@@ -81,6 +101,7 @@ namespace SystemTrayProcessManager.UI
                         _trayIconService.TrayIconClicked += OnTrayIconClicked;
                         _trayIconService.ExitRequested += OnExitRequested;
                         _trayIconService.HotkeyConfigRequested += OnHotkeyConfigRequested;
+                        _trayIconService.SettingsRequested += OnSettingsRequested;
 
                         Log.Information("System tray icon initialized.");
 
@@ -163,6 +184,37 @@ namespace SystemTrayProcessManager.UI
                             }
 
                             /// <summary>
+                            /// Handles the settings request from the tray icon context menu.
+                            /// </summary>
+                            private void OnSettingsRequested(object? sender, EventArgs e)
+                            {
+                                Log.Debug("Settings requested from tray icon menu");
+                                ShowSettingsWindow();
+                            }
+
+                            /// <summary>
+                            /// Shows the settings window.
+                            /// </summary>
+                            private void ShowSettingsWindow()
+                            {
+                                try
+                                {
+                                    var settingsWindow = Services.GetRequiredService<SettingsWindow>();
+                                    settingsWindow.Owner = MainWindow;
+                                    settingsWindow.ShowDialog();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(ex, "Failed to show settings window");
+                                    MessageBox.Show(
+                                        $"Failed to open settings:\n\n{ex.Message}",
+                                        "Error",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Error);
+                                }
+                            }
+
+                            /// <summary>
                             /// Shows the hotkey configuration window.
                             /// </summary>
                             private void ShowHotkeyConfigWindow()
@@ -201,6 +253,7 @@ namespace SystemTrayProcessManager.UI
                                     _trayIconService.TrayIconClicked -= OnTrayIconClicked;
                                     _trayIconService.ExitRequested -= OnExitRequested;
                                     _trayIconService.HotkeyConfigRequested -= OnHotkeyConfigRequested;
+                                    _trayIconService.SettingsRequested -= OnSettingsRequested;
                                     _trayIconService.Dispose();
                                     _trayIconService = null;
                                 }
@@ -408,6 +461,7 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IHotkeyService, HotkeyManagerService>();
                             services.AddSingleton<IHotkeyConfigurationService, HotkeyConfigurationService>();
                             services.AddSingleton<IActionMappingService, ActionMappingService>();
+                            services.AddSingleton<IConfigurationService, ConfigurationService>();
 
                             // Register Profile & Automation services
                             services.AddSingleton<IProfileService, ProfileService>();
@@ -430,11 +484,14 @@ namespace SystemTrayProcessManager.UI
 
                             // Register ViewModels
                             services.AddTransient<HotkeyConfigViewModel>();
+                            services.AddTransient<SettingsViewModel>();
                             services.AddSingleton<MainViewModel>();
 
                             // Register windows and controls
                             services.AddTransient<MainWindow>();
                             services.AddTransient<Views.HotkeyConfigWindow>();
+                            services.AddTransient<SettingsWindow>();
+                            services.AddTransient<FirstRunWizard>();
                             services.AddSingleton<HotkeyFeedbackOverlay>();
 
                             var serviceProvider = services.BuildServiceProvider();

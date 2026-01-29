@@ -9,3 +9,5 @@ global using WindowState = System.Windows.WindowState;
 global using ShutdownMode = System.Windows.ShutdownMode;
 global using StartupEventArgs = System.Windows.StartupEventArgs;
 global using ExitEventArgs = System.Windows.ExitEventArgs;
+global using RoutedEventArgs = System.Windows.RoutedEventArgs;
+global using RoutedEventHandler = System.Windows.RoutedEventHandler;

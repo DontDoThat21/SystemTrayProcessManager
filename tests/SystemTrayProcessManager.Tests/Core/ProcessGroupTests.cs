@@ -260,7 +260,7 @@ namespace SystemTrayProcessManager.Tests.Core
             
             Assert.True(group.MatchesProcess("chrome"));
             Assert.True(group.MatchesProcess("firefox"));
-            Assert.True(group.MatchesProcess("msedge"));
+            Assert.True(group.MatchesProcess("edgebrowser"));
             Assert.False(group.MatchesProcess("safari"));
         }
 

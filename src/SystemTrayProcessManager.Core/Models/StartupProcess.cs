@@ -79,9 +79,17 @@ namespace SystemTrayProcessManager.Core.Models
         /// Gets the display name, showing the process name or executable file name.
         /// </summary>
         [JsonIgnore]
-        public string DisplayName => !string.IsNullOrWhiteSpace(Name) 
-            ? Name 
-            : Path.GetFileNameWithoutExtension(ExecutablePath) ?? "Unknown";
+        public string DisplayName
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(Name))
+                    return Name;
+
+                var fileName = Path.GetFileNameWithoutExtension(ExecutablePath);
+                return string.IsNullOrWhiteSpace(fileName) ? "Unknown" : fileName;
+            }
+        }
 
         /// <summary>
         /// Creates a copy with the enabled state updated.

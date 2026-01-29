@@ -31,4 +31,8 @@
     <Folder Include="Services\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="SystemTrayProcessManager.Tests" />
+  </ItemGroup>
+
 </Project>
