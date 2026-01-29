@@ -606,83 +606,150 @@
 ## Phase 4: Advanced Features
 
 ### Task 9: Process Profiles & Automation
-**Status**: 📋 Not Started  
+**Status**: ✅ Complete  
 **Priority**: Medium  
 **Estimated Time**: 4-5 hours  
+**Actual Time**: 4 hours  
 **Dependencies**: Task 4, Task 5  
-**Assigned**: [Date]  
-**Completed**: [Date]
+**Assigned**: 2026-01-28  
+**Completed**: 2026-01-28
 
 #### Subtasks
-- [ ] Define `ProcessProfile` model in `Core/Models/`
+- [x] Define `ProcessProfile` model in `Core/Models/`
   - Properties: ProcessName, WindowPosition, AudioLevel, IsMuted, AlwaysOnTop
-- [ ] Define `IProfileService` interface in `Core/Services/`
-- [ ] Implement `ProfileService` in `Infrastructure/Services/`
-  - [ ] Save profile for process
-  - [ ] Load profile for process
-  - [ ] Auto-load on process detection
-- [ ] Create scheduled actions system
-  - [ ] Define `ScheduledAction` model
-  - [ ] Implement scheduler using `System.Threading.Timer`
-- [ ] Implement startup process launcher
-  - [ ] Save list of processes to auto-launch
-  - [ ] Launch on app startup
-- [ ] Create process groups feature
-  - [ ] Define `ProcessGroup` model
-  - [ ] Batch operations (close all, mute all)
-- [ ] Add profile management UI
-- [ ] Register service in DI container
+- [x] Define `ProfileConfiguration` model in `Core/Models/`
+- [x] Define `IProfileService` interface in `Core/Services/`
+- [x] Implement `ProfileService` in `Infrastructure/Services/`
+  - [x] Save profile for process
+  - [x] Load profile for process
+  - [x] Auto-load on process detection
+- [x] Create scheduled actions system
+  - [x] Define `ScheduledAction` model
+  - [x] Implement scheduler using `System.Threading.Timer`
+- [x] Implement startup process launcher
+  - [x] Save list of processes to auto-launch
+  - [x] Launch on app startup
+- [x] Create process groups feature
+  - [x] Define `ProcessGroup` model
+  - [x] Define `IProcessGroupService` interface in `Core/Services/`
+  - [x] Implement `ProcessGroupService` in `Infrastructure/Services/`
+  - [x] Batch operations (close all, mute all)
+- [ ] Add profile management UI (deferred to Phase 5)
+- [x] Register services in DI container
+- [x] Create unit tests with xUnit
 
 **Implementation Notes**:
-
+- ProcessProfile model with full window position, audio level, mute state, and always-on-top properties
+- ProfileConfiguration model for managing collections of profiles
+- ProfileService handles JSON-based persistence of process profiles
+- ScheduledAction model supports timer-based automation
+- ProcessGroup with IProcessGroupService/ProcessGroupService for batch operations
+- All services registered in DI container
+- Profile management UI deferred to Phase 5 integration
 
 **Files Created**:
+- src/SystemTrayProcessManager.Core/Models/ProcessProfile.cs
+- src/SystemTrayProcessManager.Core/Models/ProfileConfiguration.cs
+- src/SystemTrayProcessManager.Core/Models/ScheduledAction.cs
+- src/SystemTrayProcessManager.Core/Models/ProcessGroup.cs
+- src/SystemTrayProcessManager.Core/Services/IProfileService.cs
+- src/SystemTrayProcessManager.Core/Services/IProcessGroupService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/ProfileService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/ProcessGroupService.cs
+- tests/SystemTrayProcessManager.Tests/Core/ProcessProfileTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/ScheduledActionTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/ProcessGroupTests.cs
+- documentation/task-9-design.md
 
-
-**Blockers**:
+**Blockers**: None
 
 
 ---
 
 ### Task 10: Smart Features
-**Status**: 📋 Not Started  
+**Status**: ✅ Complete  
 **Priority**: Medium  
 **Estimated Time**: 4-5 hours  
+**Actual Time**: 5 hours  
 **Dependencies**: Task 4, Task 5  
-**Assigned**: [Date]  
-**Completed**: [Date]
+**Assigned**: 2026-01-28  
+**Completed**: 2026-01-29
 
 #### Subtasks
-- [ ] **Focus History**: Track recently focused processes
-  - [ ] Implement circular buffer for history
-  - [ ] Add "Switch to last N processes" functionality
-- [ ] **Auto-Mute on Fullscreen**: Detect fullscreen games
-  - [ ] Monitor for fullscreen windows
-  - [ ] Auto-mute notification apps (Discord, Slack)
-  - [ ] Auto-restore when exiting fullscreen
-- [ ] **Window Position Memory**: Save/restore window positions
-  - [ ] Track window positions per monitor configuration
-  - [ ] Detect monitor configuration changes
-  - [ ] Restore positions on app launch
-- [ ] **Gaming Mode**: One-click performance mode
-  - [ ] Suppress notifications
-  - [ ] Close resource-heavy processes
-  - [ ] Adjust process priorities
-- [ ] **Process Priority Adjustment**: Change CPU priority
-  - [ ] Add P/Invoke for `SetPriorityClass`
-  - [ ] UI for selecting priority level
-- [ ] **Startup with Windows**: Registry integration
-  - [ ] Add registry key for auto-start
-  - [ ] UI checkbox in settings
-- [ ] Register all services in DI container
+- [x] **Focus History**: Track recently focused processes
+  - [x] Implement circular buffer for history
+  - [x] Add "Switch to last N processes" functionality
+- [x] **Auto-Mute on Fullscreen**: Detect fullscreen games
+  - [x] Monitor for fullscreen windows
+  - [x] Auto-mute notification apps (Discord, Slack)
+  - [x] Auto-restore when exiting fullscreen
+- [x] **Window Position Memory**: Save/restore window positions
+  - [x] Track window positions per monitor configuration
+  - [x] Detect monitor configuration changes
+  - [x] Restore positions on app launch
+- [x] **Gaming Mode**: One-click performance mode
+  - [x] Suppress notifications
+  - [x] Close resource-heavy processes
+  - [x] Adjust process priorities
+- [x] **Process Priority Adjustment**: Change CPU priority
+  - [x] Add P/Invoke for `SetPriorityClass`
+  - [ ] UI for selecting priority level (deferred to Phase 5)
+- [x] **Startup with Windows**: Registry integration
+  - [x] Add registry key for auto-start
+  - [ ] UI checkbox in settings (deferred to Phase 5)
+- [x] Create `SmartFeaturesService` coordinator service
+- [x] Register all services in DI container
+- [x] Create unit tests with xUnit
 
 **Implementation Notes**:
-
+- FocusHistoryService tracks recently focused processes with circular buffer
+- FullscreenDetectorService monitors for fullscreen windows and triggers auto-mute
+- WindowPositionService saves/restores window positions per monitor configuration
+- GamingModeService provides one-click performance mode with notification suppression and priority adjustment
+- ProcessPriorityService wraps SetPriorityClass for CPU priority management with ProcessPriority enum
+- StartupService and StartupManagerService handle registry-based auto-start
+- SmartFeaturesService acts as coordinator/umbrella for all smart features
+- SmartFeaturesConfiguration model for centralized feature toggle management
+- UI elements for priority selection and startup checkbox deferred to Phase 5 Settings window
 
 **Files Created**:
+- src/SystemTrayProcessManager.Core/Models/FocusHistoryEntry.cs
+- src/SystemTrayProcessManager.Core/Models/FullscreenState.cs
+- src/SystemTrayProcessManager.Core/Models/WindowPosition.cs
+- src/SystemTrayProcessManager.Core/Models/GamingModeConfig.cs
+- src/SystemTrayProcessManager.Core/Models/ProcessPriorityConfig.cs
+- src/SystemTrayProcessManager.Core/Models/StartupProcess.cs
+- src/SystemTrayProcessManager.Core/Models/SmartFeaturesConfiguration.cs
+- src/SystemTrayProcessManager.Core/Enums/ProcessPriority.cs
+- src/SystemTrayProcessManager.Core/Services/IFocusHistoryService.cs
+- src/SystemTrayProcessManager.Core/Services/IFullscreenDetectorService.cs
+- src/SystemTrayProcessManager.Core/Services/IWindowPositionService.cs
+- src/SystemTrayProcessManager.Core/Services/IGamingModeService.cs
+- src/SystemTrayProcessManager.Core/Services/IProcessPriorityService.cs
+- src/SystemTrayProcessManager.Core/Services/IStartupService.cs
+- src/SystemTrayProcessManager.Core/Services/IStartupManagerService.cs
+- src/SystemTrayProcessManager.Core/Services/ISmartFeaturesService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/FocusHistoryService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/FullscreenDetectorService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/WindowPositionService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/GamingModeService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/ProcessPriorityService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/StartupService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/StartupManagerService.cs
+- src/SystemTrayProcessManager.Infrastructure/Services/SmartFeaturesService.cs
+- tests/SystemTrayProcessManager.Tests/Core/FocusHistoryEntryTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/FullscreenStateTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/WindowPositionTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/GamingModeConfigTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/ProcessPriorityTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/ProcessPriorityConfigTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/StartupProcessTests.cs
+- tests/SystemTrayProcessManager.Tests/Core/SmartFeaturesConfigurationTests.cs
+- documentation/task-10-design.md
+- documentation/task-10-review.md
+- documentation/task-10-summary.md
 
-
-**Blockers**:
+**Blockers**: None
 
 
 ---
@@ -1078,16 +1145,16 @@
 
 ### Overall Progress
 - **Total Tasks**: 18 (15 core + 3 bonus)
-- **Completed**: 0
+- **Completed**: 11
 - **In Progress**: 0
 - **Blocked**: 0
-- **Not Started**: 18
+- **Not Started**: 7
 
 ### Phase Progress
-- **Phase 1 (Infrastructure)**: 0/2 tasks (0%)
-- **Phase 2 (Process Management)**: 0/3 tasks (0%)
-- **Phase 3 (Hotkeys)**: 0/3 tasks (0%)
-- **Phase 4 (Advanced)**: 0/3 tasks (0%)
+- **Phase 1 (Infrastructure)**: 2/2 tasks (100%)
+- **Phase 2 (Process Management)**: 3/3 tasks (100%)
+- **Phase 3 (Hotkeys)**: 3/3 tasks (100%)
+- **Phase 4 (Advanced)**: 3/3 tasks (100%)
 - **Phase 5 (Polish)**: 0/4 tasks (0%)
 - **Bonus**: 0/3 tasks (0%)
 
@@ -1097,7 +1164,7 @@
 - **Total**: ~66-85 hours
 
 ### Current Focus
-📍 **Next Task**: Task 1 - Project Setup & Architecture
+📍 **Next Task**: Task 12 - Settings & Persistence
 
 ---
 
@@ -1121,6 +1188,6 @@
 
 ---
 
-**Last Updated**: [Date]  
-**Version**: 0.1.0-alpha  
-**Status**: Pre-development
+**Last Updated**: 2026-01-29  
+**Version**: 0.4.0-alpha  
+**Status**: Phase 4 Complete - Entering Phase 5
