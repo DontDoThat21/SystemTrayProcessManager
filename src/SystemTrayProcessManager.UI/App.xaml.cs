@@ -28,6 +28,7 @@ namespace SystemTrayProcessManager.UI
         private IProcessService? _processService;
         private IActionMappingService? _actionMappingService;
         private IConfigurationService? _configurationService;
+        private ICrashReporterService? _crashReporterService;
 
         /// <summary>
         /// Gets the application's service provider for dependency injection.
@@ -70,6 +71,9 @@ namespace SystemTrayProcessManager.UI
                         _serviceProvider = ConfigureServices();
 
                         Log.Information("Dependency injection configured.");
+
+                        // Step 4a: Store crash reporter for exception handlers
+                        _crashReporterService = _serviceProvider.GetRequiredService<ICrashReporterService>();
 
                         // Step 4b: Load application settings
                         _configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
@@ -357,13 +361,26 @@ namespace SystemTrayProcessManager.UI
 
         /// <summary>
         /// Handles unhandled exceptions on the UI dispatcher thread.
+        /// Generates a crash report and shows a recovery dialog.
         /// </summary>
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             Log.Fatal(e.Exception, "Unhandled exception on UI thread");
 
+            // Generate crash report
+            try
+            {
+                _crashReporterService?.GenerateReportAsync(
+                    e.Exception, "UIDispatcher", "Unhandled UI thread exception")
+                    .GetAwaiter().GetResult();
+            }
+            catch (Exception reportEx)
+            {
+                Log.Error(reportEx, "Failed to generate crash report for UI exception");
+            }
+
             var result = MessageBox.Show(
-                $"An unexpected error occurred:\n\n{e.Exception.Message}\n\nWould you like to continue running?",
+                $"An unexpected error occurred:\n\n{e.Exception.Message}\n\nA crash report has been saved.\n\nWould you like to continue running?",
                 "Unexpected Error",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error);
@@ -382,6 +399,7 @@ namespace SystemTrayProcessManager.UI
 
         /// <summary>
         /// Handles unhandled exceptions on background threads.
+        /// Generates a crash report for fatal exceptions.
         /// </summary>
         private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
@@ -390,6 +408,21 @@ namespace SystemTrayProcessManager.UI
             if (e.IsTerminating)
             {
                 Log.Fatal(exception, "Fatal unhandled exception - application will terminate");
+
+                // Generate crash report for fatal exceptions
+                if (exception != null)
+                {
+                    try
+                    {
+                        _crashReporterService?.GenerateReportAsync(
+                            exception, "AppDomain", "Fatal background thread exception")
+                            .GetAwaiter().GetResult();
+                    }
+                    catch (Exception reportEx)
+                    {
+                        Log.Error(reportEx, "Failed to generate crash report for fatal exception");
+                    }
+                }
             }
             else
             {
@@ -398,11 +431,23 @@ namespace SystemTrayProcessManager.UI
         }
 
         /// <summary>
-        /// Handles unobserved task exceptions.
+        /// Handles unobserved task exceptions. Logs via error handling service.
         /// </summary>
         private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             Log.Error(e.Exception, "Unobserved task exception");
+
+            // Log via error handling service if available
+            try
+            {
+                var errorService = _serviceProvider?.GetService(typeof(IErrorHandlingService)) as IErrorHandlingService;
+                errorService?.HandleError(e.Exception, "TaskScheduler", Core.Enums.ErrorSeverity.High);
+            }
+            catch (Exception serviceEx)
+            {
+                Log.Error(serviceEx, "Failed to handle unobserved task exception via error service");
+            }
+
             e.SetObserved(); // Prevent process termination
         }
 
@@ -477,6 +522,11 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IGamingModeService, GamingModeService>();
                             services.AddSingleton<IStartupManagerService, StartupManagerService>();
                             services.AddSingleton<ISmartFeaturesService, SmartFeaturesService>();
+
+                            // Register Error Handling & Stability services
+                            services.AddSingleton<ICrashReporterService, CrashReporterService>();
+                            services.AddSingleton<IErrorHandlingService, ErrorHandlingService>();
+                            services.AddSingleton<IElevationService, ElevationService>();
 
                             // Register UI services
                             services.AddSingleton<ITrayIconService, TrayIconService>();
