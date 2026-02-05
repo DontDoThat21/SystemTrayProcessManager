@@ -35,17 +35,17 @@
                     <TextBlock Text="Welcome!"
                                FontSize="28" FontWeight="Bold"
                                HorizontalAlignment="Center"
-                               Foreground="{DynamicResource AccentBrush}"
+                               Foreground="GhostWhite"
                                Margin="0,0,0,16"/>
 
                     <TextBlock Text="SystemTray Process Manager"
                                FontSize="16"
                                HorizontalAlignment="Center"
-                               Foreground="{DynamicResource ForegroundBrush}"
+                               Foreground="GhostWhite"
                                Margin="0,0,0,24"/>
 
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="13" MaxWidth="400" LineHeight="22">
                         Manage your running processes with global hotkeys, per-process audio control, and advanced window manipulation -- all from the system tray.
                     </TextBlock>
@@ -68,27 +68,27 @@
                               FontSize="14"/>
 
                     <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="12" Margin="0,8,0,0">
                         Global hotkeys let you control processes from any application.
                         You can customize bindings later in the Hotkey Configuration window.
                     </TextBlock>
 
                     <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="12" Margin="0,12,0,0">
                         Default hotkeys:
                     </TextBlock>
 
                     <StackPanel Margin="16,8,0,0">
                         <TextBlock Text="Ctrl+Alt+M  -  Toggle mute (focused app)"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,2"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,2"/>
                         <TextBlock Text="Ctrl+Alt+N  -  Minimize window"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,2"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,2"/>
                         <TextBlock Text="Ctrl+Alt+B  -  Bring to front"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,2"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,2"/>
                         <TextBlock Text="Ctrl+Alt+Shift+W  -  Close window"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,2"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,2"/>
                     </StackPanel>
                 </StackPanel>
             </TabItem>
@@ -98,26 +98,26 @@
                 <StackPanel VerticalAlignment="Center" Margin="20,0">
                     <TextBlock Text="Permissions"
                                FontSize="22" FontWeight="Bold"
-                               Foreground="{DynamicResource ForegroundBrush}"
+                               Foreground="GhostWhite"
                                Margin="0,0,0,16"/>
 
                     <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="13" LineHeight="22">
                         This application works best with standard user permissions. However, some features may require administrator privileges:
                     </TextBlock>
 
                     <StackPanel Margin="16,12,0,0">
                         <TextBlock Text="- Managing elevated (admin) processes"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,4"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,4"/>
                         <TextBlock Text="- Adjusting process CPU priorities"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,4"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,4"/>
                         <TextBlock Text="- Starting with Windows (registry)"
-                                   Foreground="{DynamicResource ForegroundBrush}" FontSize="12" Margin="0,4"/>
+                                   Foreground="GhostWhite" FontSize="12" Margin="0,4"/>
                     </StackPanel>
 
                     <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="12" Margin="0,16,0,0"
                                FontStyle="Italic">
                         The app will prompt you if elevation is needed for a specific action.
@@ -131,17 +131,17 @@
                     <TextBlock Text="You're All Set!"
                                FontSize="28" FontWeight="Bold"
                                HorizontalAlignment="Center"
-                               Foreground="{DynamicResource AccentBrush}"
+                               Foreground="GhostWhite"
                                Margin="0,0,0,24"/>
 
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="13" MaxWidth="400" LineHeight="22">
                         The application is running in the system tray. Right-click the tray icon for quick access to settings and process management.
                     </TextBlock>
 
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center"
-                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               Foreground="GhostWhite"
                                FontSize="12" MaxWidth="400" Margin="0,16,0,0"
                                FontStyle="Italic">
                         You can change any of these settings later from the Settings window.
@@ -164,7 +164,7 @@
                        Grid.Column="0"
                        Text="Step 1 of 4"
                        VerticalAlignment="Center"
-                       Foreground="{DynamicResource SecondaryForegroundBrush}"
+                       Foreground="GhostWhite"
                        FontSize="12"/>
 
             <Button x:Name="BackButton"

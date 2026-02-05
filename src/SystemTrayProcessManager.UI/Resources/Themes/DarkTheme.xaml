@@ -65,6 +65,11 @@
     <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}"/>
 
     <!-- ============================================ -->
+    <!-- Animation Easing Functions                   -->
+    <!-- ============================================ -->
+    <QuadraticEase x:Key="QuadEase" EasingMode="EaseOut"/>
+
+    <!-- ============================================ -->
     <!-- Typography                                   -->
     <!-- ============================================ -->
     <FontFamily x:Key="DefaultFontFamily">Segoe UI</FontFamily>

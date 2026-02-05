@@ -21,6 +21,7 @@
             <views:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
             <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisConverter"/>
             <converters:BoolToMuteIconConverter x:Key="BoolToMuteIconConverter"/>
             <converters:NotificationLevelToBrushConverter x:Key="NotificationLevelToBrushConverter"/>
         </ResourceDictionary>

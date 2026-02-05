@@ -411,12 +411,16 @@ namespace SystemTrayProcessManager.UI
         {
             Log.Fatal(e.Exception, "Unhandled exception on UI thread");
 
-            // Generate crash report
+            // Generate crash report - use Task.Run to avoid sync-over-async deadlock on UI thread
             try
             {
-                _crashReporterService?.GenerateReportAsync(
-                    e.Exception, "UIDispatcher", "Unhandled UI thread exception")
-                    .GetAwaiter().GetResult();
+                var crashReporter = _crashReporterService;
+                if (crashReporter != null)
+                {
+                    Task.Run(async () => await crashReporter.GenerateReportAsync(
+                        e.Exception, "UIDispatcher", "Unhandled UI thread exception"))
+                        .GetAwaiter().GetResult();
+                }
             }
             catch (Exception reportEx)
             {
@@ -453,14 +457,18 @@ namespace SystemTrayProcessManager.UI
             {
                 Log.Fatal(exception, "Fatal unhandled exception - application will terminate");
 
-                // Generate crash report for fatal exceptions
+                // Generate crash report for fatal exceptions - use Task.Run to avoid sync-over-async deadlock
                 if (exception != null)
                 {
                     try
                     {
-                        _crashReporterService?.GenerateReportAsync(
-                            exception, "AppDomain", "Fatal background thread exception")
-                            .GetAwaiter().GetResult();
+                        var crashReporter = _crashReporterService;
+                        if (crashReporter != null)
+                        {
+                            Task.Run(async () => await crashReporter.GenerateReportAsync(
+                                exception, "AppDomain", "Fatal background thread exception"))
+                                .GetAwaiter().GetResult();
+                        }
                     }
                     catch (Exception reportEx)
                     {
