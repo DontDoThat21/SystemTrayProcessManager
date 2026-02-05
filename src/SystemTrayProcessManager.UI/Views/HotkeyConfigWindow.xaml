@@ -13,31 +13,22 @@
         MinHeight="500"
         MinWidth="700"
         WindowStartupLocation="CenterOwner"
+        Style="{DynamicResource DarkWindowStyle}"
         d:DataContext="{d:DesignInstance Type=vm:HotkeyConfigViewModel, IsDesignTimeCreatable=False}">
 
     <Window.Resources>
-        <!-- Converter for boolean to visibility -->
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
-
         <!-- Style for section headers -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
-
-        <!-- Style for buttons -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Margin" Value="5,0"/>
-            <Setter Property="MinWidth" Value="80"/>
         </Style>
 
         <!-- Style for the edit panel -->
         <Style x:Key="EditPanelStyle" TargetType="Border">
-            <Setter Property="Background" Value="#F8F8F8"/>
-            <Setter Property="BorderBrush" Value="#DDD"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="15"/>
@@ -49,6 +40,7 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,10,0"/>
             <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         </Style>
     </Window.Resources>
 
@@ -65,10 +57,10 @@
             <TextBlock Text="Hotkey Configuration" 
                        FontSize="20" 
                        FontWeight="Bold"
-                       Foreground="#0078D4"/>
+                       Foreground="{DynamicResource PrimaryBrush}"/>
             <TextBlock Text="Manage keyboard shortcuts for process actions"
                        FontSize="12"
-                       Foreground="#666"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="0,5,0,0"/>
         </StackPanel>
 
@@ -93,9 +85,22 @@
                       HeadersVisibility="Column"
                       GridLinesVisibility="Horizontal"
                       BorderThickness="1"
-                      BorderBrush="#CCC"
-                      Background="White"
+                      BorderBrush="{DynamicResource BorderBrush}"
+                      Background="{DynamicResource CardBrush}"
+                      Foreground="{DynamicResource TextPrimaryBrush}"
+                      RowBackground="{DynamicResource CardBrush}"
+                      AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       RowHeight="35">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
 
                 <DataGrid.Columns>
                     <!-- Enabled Column -->
@@ -130,9 +135,9 @@
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="FontFamily" Value="Consolas"/>
+                                <Setter Property="FontFamily" Value="{DynamicResource MonoFontFamily}"/>
                                 <Setter Property="FontWeight" Value="Medium"/>
-                                <Setter Property="Foreground" Value="#0078D4"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
@@ -155,7 +160,7 @@
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="Foreground" Value="#666"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                 <Setter Property="FontStyle" Value="Italic"/>
                             </Style>
                         </DataGridTextColumn.ElementStyle>
@@ -169,17 +174,15 @@
                                     <Button Content="✏️" 
                                             ToolTip="Edit"
                                             Command="{Binding DataContext.EditHotkeyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Padding="5,2"
-                                            Cursor="Hand"/>
+                                            Style="{DynamicResource IconButtonStyle}"
+                                            Width="28" Height="28"
+                                            FontSize="13"/>
                                     <Button Content="🗑️" 
                                             ToolTip="Delete"
                                             Command="{Binding DataContext.DeleteHotkeyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Padding="5,2"
-                                            Cursor="Hand"/>
+                                            Style="{DynamicResource IconButtonStyle}"
+                                            Width="28" Height="28"
+                                            FontSize="13"/>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -219,6 +222,7 @@
                                Style="{StaticResource FormLabelStyle}"/>
                     <TextBox Grid.Row="1" Grid.Column="1" 
                              Text="{Binding EditingItem.Name, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{DynamicResource DarkTextBoxStyle}"
                              Margin="0,5"/>
 
                     <!-- Hotkey Capture -->
@@ -248,6 +252,7 @@
                                Style="{StaticResource FormLabelStyle}"/>
                     <TextBox Grid.Row="2" Grid.Column="3"
                              Text="{Binding EditingItem.TargetProcessName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{DynamicResource DarkTextBoxStyle}"
                              Margin="0,5"
                              ToolTip="Leave empty for focused window"/>
 
@@ -257,19 +262,20 @@
                                Style="{StaticResource FormLabelStyle}"/>
                     <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
                              Text="{Binding EditingItem.Description, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{DynamicResource DarkTextBoxStyle}"
                              Margin="0,5"/>
 
                     <!-- Validation Message -->
                     <TextBlock Grid.Row="4" Grid.ColumnSpan="4"
                                Text="{Binding ValidationMessage}"
-                               Foreground="Red"
+                               Foreground="{DynamicResource DangerBrush}"
                                Visibility="{Binding ValidationMessage, Converter={StaticResource NullToVisibilityConverter}}"
                                Margin="0,5"/>
 
                     <!-- Conflict Warning -->
                     <TextBlock Grid.Row="5" Grid.ColumnSpan="4"
                                Text="{Binding ConflictWarning}"
-                               Foreground="#CC7700"
+                               Foreground="{DynamicResource WarningBrush}"
                                Visibility="{Binding ConflictWarning, Converter={StaticResource NullToVisibilityConverter}}"
                                Margin="0,5"/>
 
@@ -280,12 +286,14 @@
                                 Margin="0,10,0,0">
                         <Button Content="Cancel"
                                 Command="{Binding CancelEditCommand}"
-                                Style="{StaticResource ActionButtonStyle}"/>
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="12,6"
+                                Margin="5,0"/>
                         <Button Content="Save"
                                 Command="{Binding SaveEditCommand}"
-                                Style="{StaticResource ActionButtonStyle}"
-                                Background="#0078D4"
-                                Foreground="White"/>
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="12,6"
+                                Margin="5,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -297,31 +305,32 @@
                     Margin="0,15,0,10">
             <Button Content="➕ Add" 
                     Command="{Binding AddHotkeyCommand}"
-                    Style="{StaticResource ActionButtonStyle}"/>
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,6" Margin="5,0"/>
             <Button Content="📥 Import" 
                     Command="{Binding ImportConfigurationCommand}"
-                    Style="{StaticResource ActionButtonStyle}"/>
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,6" Margin="5,0"/>
             <Button Content="📤 Export" 
                     Command="{Binding ExportConfigurationCommand}"
-                    Style="{StaticResource ActionButtonStyle}"/>
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,6" Margin="5,0"/>
             <Button Content="🔄 Reset to Defaults" 
                     Command="{Binding ResetToDefaultsCommand}"
-                    Style="{StaticResource ActionButtonStyle}"/>
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,6" Margin="5,0"/>
 
             <Separator Width="20" Visibility="Hidden"/>
 
             <Button Content="💾 Save Changes"
                     Command="{Binding SaveAllChangesCommand}"
-                    Style="{StaticResource ActionButtonStyle}"
-                    Background="#28A745"
-                    Foreground="White"
-                    FontWeight="SemiBold"/>
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    Padding="12,6" Margin="5,0"/>
         </StackPanel>
 
         <!-- Footer / Status -->
         <Border Grid.Row="3" 
-                Background="#F0F0F0" 
-                Padding="10,8"
+                Style="{DynamicResource StatusBarStyle}"
                 CornerRadius="4">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -331,13 +340,13 @@
 
                 <!-- Status Message -->
                 <TextBlock Text="{Binding StatusMessage}"
-                           Foreground="#666"
-                           VerticalAlignment="Center"/>
+                           Style="{DynamicResource StatusBarTextStyle}"/>
 
                 <!-- Close Button -->
                 <Button Grid.Column="1"
                         Content="Close"
                         Click="CloseButton_Click"
+                        Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="20,6"
                         MinWidth="100"/>
             </Grid>
@@ -345,11 +354,14 @@
 
         <!-- Loading Overlay -->
         <Border Grid.RowSpan="4"
-                Background="#80FFFFFF"
+                Background="#AA1E1E1E"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ProgressBar IsIndeterminate="True" Width="200" Height="4"/>
+                <ProgressBar IsIndeterminate="True" Width="200" Height="4"
+                             Foreground="{DynamicResource PrimaryBrush}"
+                             Background="{DynamicResource SurfaceBrush}"/>
                 <TextBlock Text="Please wait..." 
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,10,0,0"
                            HorizontalAlignment="Center"/>
             </StackPanel>
