@@ -152,8 +152,7 @@
 
             <!-- Empty state -->
             <StackPanel VerticalAlignment="Center" 
-                        HorizontalAlignment="Center"
-                        Visibility="{Binding FilteredProcessCount, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=InvertZero}">
+                        HorizontalAlignment="Center">
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
                         <Setter Property="Visibility" Value="Collapsed"/>
