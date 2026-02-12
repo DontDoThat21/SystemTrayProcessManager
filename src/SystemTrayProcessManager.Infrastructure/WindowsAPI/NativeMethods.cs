@@ -484,6 +484,38 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
 
                                                 #endregion
 
+                                                #region User32.dll - Window Enumeration Functions
+
+                                                /// <summary>
+                                                /// Delegate for EnumWindows callback.
+                                                /// </summary>
+                                                public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+                                                /// <summary>
+                                                /// Enumerates all top-level windows on the screen.
+                                                /// </summary>
+                                                /// <param name="lpEnumFunc">Pointer to the callback function.</param>
+                                                /// <param name="lParam">Application-defined value passed to the callback.</param>
+                                                /// <returns>True if successful; false otherwise.</returns>
+                                                [DllImport("user32.dll", SetLastError = true)]
+                                                [return: MarshalAs(UnmanagedType.Bool)]
+                                                public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+                                                /// <summary>
+                                                /// Retrieves a handle to the specified window's owner.
+                                                /// </summary>
+                                                /// <param name="hWnd">Handle to the window.</param>
+                                                /// <returns>Handle to the owner window, or IntPtr.Zero if there is no owner.</returns>
+                                                [DllImport("user32.dll")]
+                                                public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+                                                /// <summary>
+                                                /// GetWindow command to retrieve the owner window.
+                                                /// </summary>
+                                                public const uint GW_OWNER = 4;
+
+                                                #endregion
+
                                                 #region Shell32.dll - Notification State
 
                                                 /// <summary>

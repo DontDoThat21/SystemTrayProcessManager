@@ -529,6 +529,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
         /// <summary>
         /// Gets or creates a cached audio session for the specified process.
+        /// Falls back to matching by process name when the exact PID has no session
+        /// (common for multi-process apps like Chrome where audio lives under a child PID).
         /// </summary>
         private async Task<CachedAudioSession?> GetOrCreateSessionAsync(int processId)
         {
@@ -550,7 +552,25 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
                 await RefreshSessionCacheInternalAsync();
 
-                _sessionCache.TryGetValue(processId, out cachedSession);
+                if (_sessionCache.TryGetValue(processId, out cachedSession))
+                {
+                    return cachedSession;
+                }
+
+                // Fallback: find a session from a process with the same name.
+                // Multi-process apps (e.g. Chrome) have audio under a child PID,
+                // not the main-window PID that is displayed in the process list.
+                string? targetName = GetProcessNameSafe(processId);
+                if (targetName is not null && targetName != "Unknown")
+                {
+                    cachedSession = _sessionCache.Values
+                        .FirstOrDefault(s =>
+                        {
+                            string sessionProcessName = GetProcessNameSafe(s.ProcessId);
+                            return string.Equals(sessionProcessName, targetName, StringComparison.OrdinalIgnoreCase);
+                        });
+                }
+
                 return cachedSession;
             }
             finally

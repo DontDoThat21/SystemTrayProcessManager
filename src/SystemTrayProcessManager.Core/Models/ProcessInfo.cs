@@ -63,6 +63,13 @@ namespace SystemTrayProcessManager.Core.Models
                 return false;
             }
 
+            // Use WindowHandle for uniqueness so multiple windows from the same
+            // process (e.g. Chrome) are treated as distinct entries.
+            if (WindowHandle != IntPtr.Zero && other.WindowHandle != IntPtr.Zero)
+            {
+                return WindowHandle == other.WindowHandle;
+            }
+
             return ProcessId == other.ProcessId;
         }
 
@@ -75,7 +82,9 @@ namespace SystemTrayProcessManager.Core.Models
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return ProcessId.GetHashCode();
+            return WindowHandle != IntPtr.Zero
+                ? WindowHandle.GetHashCode()
+                : ProcessId.GetHashCode();
         }
 
         /// <inheritdoc/>

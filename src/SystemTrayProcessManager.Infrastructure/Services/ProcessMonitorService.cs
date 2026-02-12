@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using SystemTrayProcessManager.Core.Models;
 using SystemTrayProcessManager.Core.Services;
+using SystemTrayProcessManager.Infrastructure.WindowsAPI;
 using Timer = System.Threading.Timer;
 
 namespace SystemTrayProcessManager.Infrastructure.Services
@@ -15,7 +17,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
     {
         private readonly ILogger<ProcessMonitorService> _logger;
         private readonly IIconExtractor _iconExtractor;
-        private readonly ConcurrentDictionary<int, ProcessInfo> _trackedProcesses;
+        private readonly ConcurrentDictionary<IntPtr, ProcessInfo> _trackedProcesses;
         private readonly HashSet<string> _excludedProcessNames;
         private readonly object _monitorLock = new();
 
@@ -58,7 +60,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _iconExtractor = iconExtractor ?? throw new ArgumentNullException(nameof(iconExtractor));
-            _trackedProcesses = new ConcurrentDictionary<int, ProcessInfo>();
+            _trackedProcesses = new ConcurrentDictionary<IntPtr, ProcessInfo>();
             _currentProcessId = Environment.ProcessId;
             _pollingInterval = TimeSpan.FromMilliseconds(DefaultPollingIntervalMs);
 
@@ -158,8 +160,9 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
             try
             {
-                // Check tracked processes first
-                if (_trackedProcesses.TryGetValue(processId, out var trackedInfo))
+                // Check tracked processes first (keyed by WindowHandle now)
+                var trackedInfo = _trackedProcesses.Values.FirstOrDefault(p => p.ProcessId == processId);
+                if (trackedInfo != null)
                 {
                     return trackedInfo;
                 }
@@ -251,7 +254,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                     var processes = EnumerateProcesses();
                     foreach (var process in processes)
                     {
-                        _trackedProcesses.TryAdd(process.ProcessId, process);
+                        _trackedProcesses.TryAdd(process.WindowHandle, process);
                     }
 
                     _logger.LogDebug("Initial population: {Count} processes tracked", _trackedProcesses.Count);
@@ -343,37 +346,37 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             try
             {
                 var currentProcesses = await Task.Run(EnumerateProcesses);
-                var currentIds = new HashSet<int>(currentProcesses.Select(p => p.ProcessId));
-                var previousIds = new HashSet<int>(_trackedProcesses.Keys);
+                var currentHandles = new HashSet<IntPtr>(currentProcesses.Select(p => p.WindowHandle));
+                var previousHandles = new HashSet<IntPtr>(_trackedProcesses.Keys);
 
                 var started = new List<ProcessInfo>();
                 var stopped = new List<(int Id, string Name)>();
                 var hasChanges = false;
 
-                // Find new processes
+                // Find new windows
                 foreach (var process in currentProcesses)
                 {
-                    if (!previousIds.Contains(process.ProcessId))
+                    if (!previousHandles.Contains(process.WindowHandle))
                     {
-                        _trackedProcesses.TryAdd(process.ProcessId, process);
+                        _trackedProcesses.TryAdd(process.WindowHandle, process);
                         started.Add(process);
                         hasChanges = true;
                     }
                     else
                     {
                         // Update existing process info (window title might have changed)
-                        _trackedProcesses[process.ProcessId] = process;
+                        _trackedProcesses[process.WindowHandle] = process;
                     }
                 }
 
-                // Find stopped processes
-                foreach (var previousId in previousIds)
+                // Find closed windows
+                foreach (var previousHandle in previousHandles)
                 {
-                    if (!currentIds.Contains(previousId))
+                    if (!currentHandles.Contains(previousHandle))
                     {
-                        if (_trackedProcesses.TryRemove(previousId, out var removedProcess))
+                        if (_trackedProcesses.TryRemove(previousHandle, out var removedProcess))
                         {
-                            stopped.Add((previousId, removedProcess.Name));
+                            stopped.Add((removedProcess.ProcessId, removedProcess.Name));
                             hasChanges = true;
                         }
                     }
@@ -431,63 +434,148 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         }
 
         /// <summary>
-        /// Enumerates all processes with visible windows.
+        /// Enumerates all top-level visible windows and creates ProcessInfo entries per window.
+        /// This ensures multiple windows from the same process (e.g. Chrome) are listed individually.
         /// </summary>
         private List<ProcessInfo> EnumerateProcesses()
         {
             var result = new List<ProcessInfo>();
+            var seenHandles = new HashSet<IntPtr>();
 
             try
             {
-                var processes = Process.GetProcesses();
-
-                foreach (var process in processes)
+                NativeMethods.EnumWindows((hWnd, lParam) =>
                 {
                     try
                     {
-                        // Skip processes without windows
-                        if (process.MainWindowHandle == IntPtr.Zero)
+                        if (!NativeMethods.IsWindowVisible(hWnd))
                         {
-                            continue;
+                            return true;
                         }
 
-                        // Skip excluded processes
-                        if (ShouldExcludeProcess(process))
+                        // Skip owned windows (popups, dialogs)
+                        IntPtr owner = NativeMethods.GetWindow(hWnd, NativeMethods.GW_OWNER);
+                        if (owner != IntPtr.Zero)
                         {
-                            continue;
+                            return true;
                         }
 
-                        var processInfo = CreateProcessInfo(process);
-                        if (processInfo != null)
+                        long exStyle = NativeMethods.GetWindowLongAuto(hWnd, WindowConstants.GWL_EXSTYLE);
+                        long style = NativeMethods.GetWindowLongAuto(hWnd, WindowConstants.GWL_STYLE);
+
+                        // Skip tool windows unless they have WS_EX_APPWINDOW
+                        if ((exStyle & WindowConstants.WS_EX_TOOLWINDOW) != 0 &&
+                            (exStyle & WindowConstants.WS_EX_APPWINDOW) == 0)
                         {
-                            result.Add(processInfo);
+                            return true;
                         }
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // Process has exited
-                    }
-                    catch (System.ComponentModel.Win32Exception)
-                    {
-                        // Access denied
+
+                        // Skip child windows
+                        if ((style & WindowConstants.WS_CHILD) != 0)
+                        {
+                            return true;
+                        }
+
+                        // Get the owning process
+                        NativeMethods.GetWindowThreadProcessId(hWnd, out uint pid);
+                        if (pid == 0 || (int)pid == _currentProcessId)
+                        {
+                            return true;
+                        }
+
+                        // Get window title
+                        int titleLength = NativeMethods.GetWindowTextLength(hWnd);
+                        string? windowTitle = null;
+                        if (titleLength > 0)
+                        {
+                            var sb = new StringBuilder(titleLength + 1);
+                            NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
+                            windowTitle = sb.ToString();
+                        }
+
+                        // Skip windows with no title (usually system processes) unless
+                        // they belong to well-known applications
+                        if (string.IsNullOrWhiteSpace(windowTitle))
+                        {
+                            return true;
+                        }
+
+                        // Resolve process details
+                        Process? process = null;
+                        try
+                        {
+                            process = Process.GetProcessById((int)pid);
+                        }
+                        catch
+                        {
+                            return true;
+                        }
+
+                        try
+                        {
+                            if (_excludedProcessNames.Contains(process.ProcessName))
+                            {
+                                return true;
+                            }
+
+                            string? executablePath = null;
+                            DateTime startTime = DateTime.MinValue;
+
+                            try { executablePath = process.MainModule?.FileName; } catch { }
+                            try { startTime = process.StartTime; } catch { }
+
+                            // Skip immersive/UWP system apps
+                            if (!string.IsNullOrEmpty(executablePath) &&
+                                executablePath.Contains("\\SystemApps\\", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+
+                            var icon = !string.IsNullOrEmpty(executablePath)
+                                ? _iconExtractor.ExtractIcon(executablePath)
+                                : _iconExtractor.ExtractIconFromHandle(hWnd);
+
+                            if (seenHandles.Add(hWnd))
+                            {
+                                result.Add(new ProcessInfo
+                                {
+                                    ProcessId = (int)pid,
+                                    Name = process.ProcessName,
+                                    WindowTitle = windowTitle,
+                                    ExecutablePath = executablePath,
+                                    WindowHandle = hWnd,
+                                    Icon = icon,
+                                    StartTime = startTime,
+                                    IsResponding = process.Responding
+                                });
+                            }
+                        }
+                        catch (InvalidOperationException) { }
+                        catch (System.ComponentModel.Win32Exception) { }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Error processing window 0x{Handle:X}", hWnd.ToInt64());
+                        }
+                        finally
+                        {
+                            process.Dispose();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogDebug(ex, "Error processing: {ProcessId}", process.Id);
+                        _logger.LogDebug(ex, "Error in EnumWindows callback for 0x{Handle:X}", hWnd.ToInt64());
                     }
-                    finally
-                    {
-                        process.Dispose();
-                    }
-                }
-            }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error enumerating processes");
-                }
 
-                return result.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                    return true;
+                }, IntPtr.Zero);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enumerating windows");
+            }
+
+            return result.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         /// <summary>
         /// Creates a ProcessInfo object from a Process instance.

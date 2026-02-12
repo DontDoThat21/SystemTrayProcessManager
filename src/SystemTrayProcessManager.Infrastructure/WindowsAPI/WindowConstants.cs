@@ -245,6 +245,25 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
         /// </summary>
         public const long WS_EX_APPWINDOW = 0x00040000L;
 
+        /// <summary>
+        /// The window should not become the foreground window when the user clicks it.
+        /// </summary>
+        public const long WS_EX_NOACTIVATE = 0x08000000L;
+
+        #endregion
+
+        #region Window Styles - Child (WS_)
+
+        /// <summary>
+        /// The window is a child window.
+        /// </summary>
+        public const long WS_CHILD = 0x40000000L;
+
+        /// <summary>
+        /// The window is a pop-up window.
+        /// </summary>
+        public const long WS_POPUP = unchecked((long)0x80000000L);
+
         #endregion
 
         #region SetLayeredWindowAttributes Flags (LWA_)
