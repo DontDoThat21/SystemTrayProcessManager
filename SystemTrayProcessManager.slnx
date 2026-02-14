@@ -21,6 +21,11 @@
       <File Path="claude/skills/SKILL.md" />
       <File Path="claude/skills/wpf-engineer.claude.md" />
     </Folder>
+    <File Path="claude/skills/architect.claude.md" />
+    <File Path="claude/skills/QUICKREF.md" />
+    <File Path="claude/skills/reviewer.claude.md" />
+    <File Path="claude/skills/SKILL.md" />
+    <File Path="claude/skills/wpf-engineer.claude.md" />
   </Folder>
   <Folder Name="/documentation/">
     <File Path="documentation/app.spec.features.status.md" />
