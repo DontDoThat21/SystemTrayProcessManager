@@ -7,8 +7,9 @@ namespace SystemTrayProcessManager.Core.Services
     /// Enables muting, unmuting, and volume adjustment for individual application processes.
     /// </summary>
     /// <remarks>
-    /// Audio sessions are only available for processes that are currently producing audio
-    /// or have produced audio since their last audio device enumeration.
+    /// Queries refresh sessions across all active playback devices, including applications
+    /// started after this service. Mute and volume changes apply to every matching session.
+    /// Exclusive-mode streams that bypass Windows session volume are not controllable here.
     /// </remarks>
     public interface IAudioService : IDisposable
     {
@@ -34,7 +35,7 @@ namespace SystemTrayProcessManager.Core.Services
 
         /// <summary>
         /// Toggles the mute state for the specified process.
-        /// If muted, the process will be unmuted; if unmuted, it will be muted.
+        /// If every session is muted, all are unmuted; otherwise all are muted.
         /// </summary>
         /// <param name="processId">The process identifier to toggle mute.</param>
         /// <returns>

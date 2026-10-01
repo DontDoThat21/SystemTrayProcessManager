@@ -16,7 +16,28 @@
 
 **Blockers**: None for implementation or automated checks. Physical audio/shortcut testing and extended memory/performance observation remain manual checks.
 
-### Follow-up: Editing reliability and per-application action shortcuts (2026-10-01)
+### Follow-up: Fullscreen game audio discovery (2026-10-01)
+
+**Validation status**: Implementation and native Windows audio regression verified; original game recheck pending because the game exited during investigation.
+
+- Runtime logs proved Num9 reached `GoWEDay-Steam` (PID 32348), but the old manager reported no session. A fresh read-only Windows query found that PID on six outputs, including active headphones and controller audio.
+- NAudio's `Sessions` property was an old snapshot. The manager also searched only the default output and retained one session per PID, omitting additional outputs/sessions.
+- Added `IAudioSessionProvider` and `IAudioSession` in Core, and `WindowsAudioSessionProvider` in Infrastructure. It refreshes native enumerators across every active render endpoint. Native resources are scoped to each operation rather than cached indefinitely.
+- AudioManagerService serializes discovery, updates, and disposal off the UI thread. Mute/unmute/volume affect every matching session. Mixed mute states converge consistently. Exact PID matching precedes the existing executable-name fallback for multi-process apps.
+- Existing interfaces and saved bindings remain compatible; Num9 configuration was preserved. The rebuilt Debug app was restarted, with hook and mappings verified in the log (startup 509 ms).
+- Full Debug test suite: **1,298 passed**, no warnings. Eleven additional tests cover late discovery, output switches, multi-session mute, unrelated app isolation, aggregate status, failures/disposal, and concurrent toggles. A native WASAPI test creates a silent stream after initial enumeration and verifies mute/unmute readback.
+- Native integration runs when an active audio device exists; it ran successfully on this machine. Physical in-game listening remains unverified. Exclusive audio that bypasses session volume is not treated as permission to mute the entire endpoint.
+
+**Files created**:
+- `src/SystemTrayProcessManager.Core/Services/IAudioSession.cs`
+- `src/SystemTrayProcessManager.Core/Services/IAudioSessionProvider.cs`
+- `src/SystemTrayProcessManager.Infrastructure/Services/WindowsAudioSessionProvider.cs`
+- `tests/SystemTrayProcessManager.Tests/Infrastructure/AudioSessionDiscoveryTests.cs`
+- `tests/SystemTrayProcessManager.Tests/Infrastructure/AudioSessionNativeTests.cs`
+
+**Files modified**: `AudioManagerService.cs`, `IAudioService.cs`, `App.xaml.cs`, `documentation/USER_GUIDE.md`, and this status document.
+
+### Earlier follow-up: Editing reliability and per-application action shortcuts (2026-10-01)
 
 - Found the remaining runtime root cause by launching the app: `SetWindowsHookEx` used a nonexistent unsuffixed native export. Set the `LibraryImport` entry point to `SetWindowsHookExW`. A real Windows hook installation/disposal regression test failed before the fix and passes afterward.
 - **Save & Apply** now commits, persists, and applies an edit in one operation. **Save Changes** includes the current edit. Edit/delete buttons pass the exact row instead of relying on selection.

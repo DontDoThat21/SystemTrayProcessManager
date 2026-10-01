@@ -165,10 +165,11 @@ Control audio for individual applications:
 
 ### Audio Session Detection
 
-The application monitors audio sessions in real-time:
-- New audio sessions are detected automatically
-- Device changes (plugging in headphones) are handled
-- Processes without audio sessions show disabled controls
+Audio operations query fresh sessions across all active playback devices:
+- Games and applications started after Process Manager are discovered on the next operation.
+- Mute applies to all of the target process's sessions, including headphones, monitor audio, and controller speakers.
+- Switching devices or recreating a game's audio stream does not require restarting Process Manager.
+- Toggle mutes all matching sessions unless they are already all muted; in that case it unmutes them all.
 
 ---
 
@@ -370,9 +371,9 @@ Automatically apply settings when apps launch:
 
 **Solutions:**
 1. Check Windows Volume Mixer - is the app listed?
-2. Restart the target application
-3. Check if audio session exists (not all apps have one)
-4. Restart SystemTray Process Manager
+2. For a focused-window shortcut, keep the game/application focused when pressing it.
+3. Check the log: a matched hotkey followed by "No audio session" is an audio-discovery issue, not a fullscreen keyboard issue.
+4. True exclusive-mode audio can bypass Windows per-session mute controls; use shared-mode audio for per-application muting. Process Manager does not mute the entire system as a fallback. See [Microsoft's audio volume documentation](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nn-audioclient-isimpleaudiovolume).
 
 #### High Memory Usage
 

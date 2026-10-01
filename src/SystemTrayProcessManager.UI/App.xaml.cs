@@ -553,6 +553,8 @@ namespace SystemTrayProcessManager.UI
                             services.AddSingleton<IProcessService, ProcessMonitorService>();
                             services.AddSingleton<IWindowService, WindowManipulationService>();
                             services.AddSingleton<IAudioService, AudioManagerService>();
+                            services.AddSingleton<IAudioSessionProvider>(provider =>
+                                new WindowsAudioSessionProvider(provider.GetRequiredService<ILogger<AudioManagerService>>()));
                             services.AddSingleton<IHotkeyService, HotkeyManagerService>();
                             services.AddSingleton<IHotkeyConfigurationService, HotkeyConfigurationService>();
                             services.AddSingleton<IActionMappingService, ActionMappingService>();
