@@ -116,6 +116,14 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         }
 
         /// <inheritdoc/>
+        public Task<bool> PreviousTrackAsync(IntPtr windowHandle) =>
+            PostMediaCommandAsync(windowHandle, WindowConstants.APPCOMMAND_MEDIA_PREVIOUSTRACK);
+
+        /// <inheritdoc/>
+        public Task<bool> NextTrackAsync(IntPtr windowHandle) =>
+            PostMediaCommandAsync(windowHandle, WindowConstants.APPCOMMAND_MEDIA_NEXTTRACK);
+
+        /// <inheritdoc/>
         public Task<bool> MinimizeAsync(IntPtr windowHandle)
         {
             return Task.Run(() =>
@@ -595,6 +603,36 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         }
 
         #region Private Helper Methods
+
+        private Task<bool> PostMediaCommandAsync(IntPtr windowHandle, int command)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    if (!ValidateWindowHandle(windowHandle, nameof(PostMediaCommandAsync)))
+                    {
+                        return false;
+                    }
+
+                    bool result = NativeMethods.PostMessage(windowHandle, WindowConstants.WM_APPCOMMAND,
+                        IntPtr.Zero, new IntPtr(command << 16));
+                    if (!result)
+                    {
+                        _logger.LogWarning("Failed to post media command {Command} to window 0x{Handle:X}. Win32 error: {ErrorCode}",
+                            command, windowHandle.ToInt64(), Marshal.GetLastWin32Error());
+                    }
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Exception posting media command {Command} to window 0x{Handle:X}",
+                        command, windowHandle.ToInt64());
+                    return false;
+                }
+            });
+        }
 
         /// <summary>
         /// Validates the window handle and logs appropriate messages.

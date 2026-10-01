@@ -33,6 +33,11 @@ public class ProcessHotkeysViewModelTests
             new ProcessInfo { ProcessId = 20, Name = "Browser", WindowHandle = new IntPtr(20) }
         });
         var audio = new Mock<IAudioService>();
+        audio.Setup(a => a.GetAudioProcessesAsync()).ReturnsAsync(new[]
+        {
+            new AudioProcessInfo { ProcessId = 10, ProcessName = "Player" },
+            new AudioProcessInfo { ProcessId = 20, ProcessName = "Browser" }
+        });
         audio.Setup(a => a.ToggleMuteProcessAsync(It.IsAny<int>())).ReturnsAsync(true);
         using var actions = new ActionMappingService(NullLogger<ActionMappingService>.Instance, hotkeys.Object,
             config.Object, Mock.Of<IWindowService>(), audio.Object, processes.Object);
@@ -67,6 +72,23 @@ public class ProcessHotkeysViewModelTests
         Assert.Single(callbacks);
         Assert.True(callbacks.ContainsKey(Key(0x50)));
         Assert.Contains(saved.Items, i => i.TargetProcessName == "PLAYER" && !i.IsEnabled);
+    }
+
+    [Fact]
+    public async Task LoadAsync_IncludesWindowAndMediaActionsForTheConfiguredApplication()
+    {
+        var config = new Mock<IHotkeyConfigurationService>();
+        config.Setup(c => c.LoadConfigurationAsync()).ReturnsAsync(new HotkeyConfiguration());
+        var vm = new ProcessHotkeysViewModel(config.Object, Mock.Of<IActionMappingService>(),
+            NullLogger<ProcessHotkeysViewModel>.Instance);
+
+        await vm.LoadAsync("Player.exe");
+
+        var row = Assert.Single(vm.Rows, row => row.ActionType == "SetFocus");
+        Assert.Equal("Player", row.TargetProcessName);
+        Assert.Equal(ActionMode.PinnedProcess, row.ActionMode);
+        Assert.Contains(vm.Rows, row => row.ActionType == "PreviousTrack");
+        Assert.Contains(vm.Rows, row => row.ActionType == "NextTrack");
     }
 
     [Theory]

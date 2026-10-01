@@ -452,6 +452,62 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
             _windowServiceMock.Verify(w => w.SetAlwaysOnTopAsync(hwnd, !currentState), Times.Once);
         }
 
+        [Fact]
+        public async Task ConfiguredSetFocus_ActivatesThePinnedApplicationWindow()
+        {
+            Func<Task>? callback = null;
+            var hwnd = new IntPtr(123);
+            _hotkeyServiceMock.Setup(h => h.RegisterHotkey(It.IsAny<HotkeyBinding>(), It.IsAny<Func<Task>>(), true))
+                .Callback<HotkeyBinding, Func<Task>, bool>((_, action, _) => callback = action).Returns(true);
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(new[]
+            {
+                new ProcessInfo { ProcessId = 123, Name = "TestApp", WindowHandle = hwnd }
+            });
+            _windowServiceMock.Setup(w => w.IsValidWindow(hwnd)).Returns(true);
+            _windowServiceMock.Setup(w => w.BringToFrontAsync(hwnd)).ReturnsAsync(true);
+
+            Assert.True(_service.RegisterActionMapping(new HotkeyConfigItem("Focus TestApp", 0x46,
+                HotkeyModifier.Ctrl, "SetFocus") { TargetProcessName = "TestApp", ActionMode = ActionMode.PinnedProcess }));
+
+            await callback!();
+
+            _windowServiceMock.Verify(w => w.BringToFrontAsync(hwnd), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("PreviousTrack")]
+        [InlineData("NextTrack")]
+        public async Task ConfiguredMediaTrackAction_SendsTheCommandToThePinnedApplicationWindow(string actionType)
+        {
+            Func<Task>? callback = null;
+            var hwnd = new IntPtr(123);
+            _hotkeyServiceMock.Setup(h => h.RegisterHotkey(It.IsAny<HotkeyBinding>(), It.IsAny<Func<Task>>(), true))
+                .Callback<HotkeyBinding, Func<Task>, bool>((_, action, _) => callback = action).Returns(true);
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(new[]
+            {
+                new ProcessInfo { ProcessId = 123, Name = "TestApp", WindowHandle = hwnd }
+            });
+            _windowServiceMock.Setup(w => w.IsValidWindow(hwnd)).Returns(true);
+            _windowServiceMock.Setup(w => w.PreviousTrackAsync(hwnd)).ReturnsAsync(true);
+            _windowServiceMock.Setup(w => w.NextTrackAsync(hwnd)).ReturnsAsync(true);
+
+            Assert.True(_service.RegisterActionMapping(new HotkeyConfigItem("Media TestApp", 0x4D,
+                HotkeyModifier.Ctrl, actionType) { TargetProcessName = "TestApp", ActionMode = ActionMode.PinnedProcess }));
+
+            await callback!();
+
+            if (actionType == "PreviousTrack")
+            {
+                _windowServiceMock.Verify(w => w.PreviousTrackAsync(hwnd), Times.Once);
+                _windowServiceMock.Verify(w => w.NextTrackAsync(hwnd), Times.Never);
+            }
+            else
+            {
+                _windowServiceMock.Verify(w => w.NextTrackAsync(hwnd), Times.Once);
+                _windowServiceMock.Verify(w => w.PreviousTrackAsync(hwnd), Times.Never);
+            }
+        }
+
         [Theory]
         [InlineData("TestApp")]
         [InlineData(" testapp.EXE ")]

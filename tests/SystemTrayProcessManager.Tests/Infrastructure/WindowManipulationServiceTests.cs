@@ -76,6 +76,17 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
 
         #endregion
 
+        #region Media Track Command Tests
+
+        [Fact]
+        public async Task MediaTrackCommands_WithZeroHandle_ReturnFalse()
+        {
+            Assert.False(await _service.PreviousTrackAsync(IntPtr.Zero));
+            Assert.False(await _service.NextTrackAsync(IntPtr.Zero));
+        }
+
+        #endregion
+
         #region BringToFrontAsync Tests
 
         [Fact]

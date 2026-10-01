@@ -109,6 +109,19 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
         /// </summary>
         public const uint WM_SETICON = 0x0080;
 
+        /// <summary>Sent to request a standard application command.</summary>
+        public const uint WM_APPCOMMAND = 0x0319;
+
+        #endregion
+
+        #region Application Commands
+
+        /// <summary>Moves media playback to the next track.</summary>
+        public const int APPCOMMAND_MEDIA_NEXTTRACK = 11;
+
+        /// <summary>Moves media playback to the previous track.</summary>
+        public const int APPCOMMAND_MEDIA_PREVIOUSTRACK = 12;
+
         #endregion
 
         #region System Command Values (SC_)

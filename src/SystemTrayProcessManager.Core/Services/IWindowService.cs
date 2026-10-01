@@ -21,6 +21,16 @@ namespace SystemTrayProcessManager.Core.Services
         /// </remarks>
         Task<bool> BringToFrontAsync(IntPtr windowHandle);
 
+        /// <summary>Sends the previous media track command to the specified application window.</summary>
+        /// <param name="windowHandle">Handle to the target application window.</param>
+        /// <returns>True if Windows accepted the command for delivery; otherwise, false.</returns>
+        Task<bool> PreviousTrackAsync(IntPtr windowHandle);
+
+        /// <summary>Sends the next media track command to the specified application window.</summary>
+        /// <param name="windowHandle">Handle to the target application window.</param>
+        /// <returns>True if Windows accepted the command for delivery; otherwise, false.</returns>
+        Task<bool> NextTrackAsync(IntPtr windowHandle);
+
         /// <summary>
         /// Minimizes the specified window to the taskbar.
         /// </summary>

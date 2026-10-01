@@ -551,6 +551,20 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                         success = await _audioService.ToggleMuteProcessAsync(processId);
                         break;
 
+                    case ProcessActionType.PreviousTrack:
+                        if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
+                        {
+                            success = await _windowService.PreviousTrackAsync(windowHandle);
+                        }
+                        break;
+
+                    case ProcessActionType.NextTrack:
+                        if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
+                        {
+                            success = await _windowService.NextTrackAsync(windowHandle);
+                        }
+                        break;
+
                     case ProcessActionType.Close:
                         if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
                         {
@@ -701,11 +715,13 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                 "mute" => ProcessActionType.Mute,
                 "unmute" => ProcessActionType.Unmute,
                 "togglemute" or "toggle_mute" or "toggle mute" => ProcessActionType.ToggleMute,
+                "previoustrack" or "previous_track" or "previous track" or "previous" => ProcessActionType.PreviousTrack,
+                "nexttrack" or "next_track" or "next track" or "next" => ProcessActionType.NextTrack,
                 "close" => ProcessActionType.Close,
                 "minimize" => ProcessActionType.Minimize,
                 "maximize" => ProcessActionType.Maximize,
                 "restore" => ProcessActionType.Restore,
-                "bringtofront" or "bring_to_front" or "bring to front" or "focus" => ProcessActionType.BringToFront,
+                "bringtofront" or "bring_to_front" or "bring to front" or "focus" or "setfocus" or "set_focus" or "set focus" => ProcessActionType.BringToFront,
                 "hide" => ProcessActionType.Hide,
                 "show" => ProcessActionType.Show,
                 _ => ProcessActionType.None

@@ -73,6 +73,12 @@ namespace SystemTrayProcessManager.Core.Enums
         Show = 512,
 
         /// <summary>Toggles whether the application window stays above other windows.</summary>
-        ToggleAlwaysOnTop = 1024
+        ToggleAlwaysOnTop = 1024,
+
+        /// <summary>Sends the previous media track command to the application window.</summary>
+        PreviousTrack = 2048,
+
+        /// <summary>Sends the next media track command to the application window.</summary>
+        NextTrack = 4096
     }
 }
