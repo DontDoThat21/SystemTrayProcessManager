@@ -485,6 +485,7 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
 
             Assert.True(result.Success);
             Assert.Equal(123, result.ProcessId);
+            _processServiceMock.Verify(p => p.GetRunningProcessesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]

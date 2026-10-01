@@ -275,12 +275,24 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                 {
                     targetName = targetName[..^4];
                 }
-                var processes = await _processService.GetRunningProcessesAsync();
-                var targetProcess = processes.FirstOrDefault(p =>
-                    p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                IReadOnlyList<ProcessInfo>? processes = null;
+                ProcessInfo? targetProcess;
+                if (IsAudioAction(actionType))
+                {
+                    // Avoid enumerating every visible window before a latency-sensitive audio hotkey.
+                    targetProcess = FindProcessByName(targetName);
+                }
+                else
+                {
+                    processes = await _processService.GetRunningProcessesAsync();
+                    targetProcess = processes.FirstOrDefault(p =>
+                        p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                    targetProcess ??= processes.FirstOrDefault(p =>
+                        p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
+                }
 
                 // Audio applications may continue running without a visible window.
-                if (targetProcess == null && actionType is ProcessActionType.Mute or ProcessActionType.Unmute or ProcessActionType.ToggleMute)
+                if (targetProcess == null && IsAudioAction(actionType))
                 {
                     var audioProcesses = await _audioService.GetAudioProcessesAsync();
                     var audioProcess = audioProcesses.FirstOrDefault(p =>
@@ -291,8 +303,14 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                     }
                 }
 
-                targetProcess ??= processes.FirstOrDefault(p =>
-                    p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
+                if (targetProcess == null && IsAudioAction(actionType))
+                {
+                    processes = await _processService.GetRunningProcessesAsync();
+                    targetProcess = processes.FirstOrDefault(p =>
+                        p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                        ?? processes.FirstOrDefault(p =>
+                            p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
+                }
 
                 if (targetProcess == null)
                 {
@@ -321,6 +339,37 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                 RaiseActionExecuted(errorResult);
                 return errorResult;
             }
+        }
+
+        private static bool IsAudioAction(ProcessActionType actionType) =>
+            actionType is ProcessActionType.Mute or ProcessActionType.Unmute or ProcessActionType.ToggleMute;
+
+        private static ProcessInfo? FindProcessByName(string processName)
+        {
+            var processes = Process.GetProcessesByName(processName);
+            try
+            {
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        return new ProcessInfo { ProcessId = process.Id, Name = processName };
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // The selected process exited while its identity was being read.
+                    }
+                }
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+
+            return null;
         }
 
         /// <inheritdoc/>
