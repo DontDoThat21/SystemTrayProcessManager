@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Data;
 using Microsoft.Extensions.Logging;
 using SystemTrayProcessManager.Core.Models;
+using SystemTrayProcessManager.Core.Services;
 using SystemTrayProcessManager.UI.ViewModels;
 
 namespace SystemTrayProcessManager.UI.Views
@@ -15,18 +16,23 @@ namespace SystemTrayProcessManager.UI.Views
     {
         private readonly ILogger<HotkeyConfigWindow> _logger;
         private readonly HotkeyConfigViewModel _viewModel;
+        private readonly IHotkeyService _hotkeyService;
+        private bool _resumeAfterCapture;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HotkeyConfigWindow"/> class.
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         /// <param name="viewModel">The view model for this window.</param>
+        /// <param name="hotkeyService">The hotkey service to suspend while recording a shortcut.</param>
         public HotkeyConfigWindow(
             ILogger<HotkeyConfigWindow> logger,
-            HotkeyConfigViewModel viewModel)
+            HotkeyConfigViewModel viewModel,
+            IHotkeyService hotkeyService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
 
             InitializeComponent();
 
@@ -34,6 +40,7 @@ namespace SystemTrayProcessManager.UI.Views
 
             Loaded += OnLoaded;
             Closing += OnClosing;
+            Closed += (_, _) => ResumeAfterCapture();
 
             _logger.LogDebug("HotkeyConfigWindow initialized");
         }
@@ -44,8 +51,14 @@ namespace SystemTrayProcessManager.UI.Views
             await _viewModel.LoadConfigurationAsync().ConfigureAwait(true);
         }
 
-        private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+        private async void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (_viewModel.IsBusy)
+            {
+                e.Cancel = true;
+                return;
+            }
+
             if (_viewModel.HasUnsavedChanges)
             {
                 var result = MessageBox.Show(
@@ -57,9 +70,14 @@ namespace SystemTrayProcessManager.UI.Views
                 switch (result)
                 {
                     case MessageBoxResult.Yes:
-                        // Save and close
-                        _ = _viewModel.SaveAllChangesCommand.ExecuteAsync(null);
-                        break;
+                        e.Cancel = true;
+                        await _viewModel.SaveAllChangesCommand.ExecuteAsync(null);
+                        if (!_viewModel.HasUnsavedChanges)
+                        {
+                            // Close after the original Closing event has finished.
+                            _ = Dispatcher.BeginInvoke(new Action(Close));
+                        }
+                        return;
                     case MessageBoxResult.Cancel:
                         e.Cancel = true;
                         return;
@@ -78,6 +96,29 @@ namespace SystemTrayProcessManager.UI.Views
         private void HotkeyCaptureControl_HotkeyCaptured(object? sender, HotkeyBinding e)
         {
             _viewModel.OnHotkeyCaptured(e);
+        }
+
+        private void HotkeyCaptureControl_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (!_hotkeyService.IsSuspended)
+            {
+                _hotkeyService.Suspend();
+                _resumeAfterCapture = true;
+            }
+        }
+
+        private void HotkeyCaptureControl_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            ResumeAfterCapture();
+        }
+
+        private void ResumeAfterCapture()
+        {
+            if (_resumeAfterCapture)
+            {
+                _hotkeyService.Resume();
+                _resumeAfterCapture = false;
+            }
         }
     }
 

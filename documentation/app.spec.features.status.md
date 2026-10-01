@@ -6,6 +6,45 @@
 **Purpose**: Portfolio project demonstrating advanced Windows API integration, process management, and global hotkey system  
 **Tech Stack**: WPF, C# 12, .NET 8, CommunityToolkit.Mvvm, NAudio, Serilog
 
+## Corrective Task: User-configurable application mute shortcut
+
+**Status**: ⏳ In Progress — implementation and automated validation complete; manual verification pending
+
+**Assigned**: 2026-10-01
+
+**Dependencies**: Tasks 5–8 (marked complete)
+
+**Blockers**: The user's running Debug app locks its build output. Release validation succeeds; live audio/keyboard and visual checks have not been performed.
+
+**Design / Implementation Notes**:
+- Reuse `IAudioService`, `IHotkeyConfigurationService`, and `IActionMappingService`; no new P/Invoke or DI registrations required.
+- Replace the editor's placeholder registration with live mapping reload after successful persistence; report failures and retain retry state.
+- Derive action mode from the target field and honor targets saved by older editor versions. Prefer exact process names, accept `.exe`, and locate audio apps without visible windows.
+- Keep registered mappings separate from mutable editor items. Track enable checkbox changes and await save before closing.
+- Install the hook on the WPF dispatcher thread and suppress repeated actions while a key is held. Suspend actions during shortcut capture and restore the prior suspension state.
+- Expose **Configure Hotkeys** in the dashboard and explain the **ToggleMute**, target, capture, Save, and Save Changes workflow.
+
+**Validation**:
+- [x] Release test suite: 1,277 passed, including 16 new regression cases.
+- [x] Release build succeeds without compiler warnings; diff whitespace check passes.
+- [x] Verify selected target routing, mute/unmute callback dispatch, edited/disabled registrations, `.exe` names, background audio apps, save failures, conflicts, and held keys.
+- [ ] Manual launch, visual inspection, real audio playback/shortcut testing, log review, and memory/performance observation.
+
+**Files Modified**:
+- `src/SystemTrayProcessManager.Infrastructure/Services/ActionMappingService.cs`
+- `src/SystemTrayProcessManager.Infrastructure/Services/HotkeyManagerService.cs`
+- `src/SystemTrayProcessManager.UI/App.xaml.cs`
+- `src/SystemTrayProcessManager.UI/MainWindow.xaml` and `.xaml.cs`
+- `src/SystemTrayProcessManager.UI/ViewModels/HotkeyConfigViewModel.cs`
+- `src/SystemTrayProcessManager.UI/Views/HotkeyConfigWindow.xaml` and `.xaml.cs`
+- `tests/SystemTrayProcessManager.Tests/Infrastructure/ActionMappingServiceTests.cs`
+- `documentation/USER_GUIDE.md`
+- `documentation/app.spec.features.status.md`
+
+**Files Created**:
+- `tests/SystemTrayProcessManager.Tests/UI/HotkeyConfigViewModelTests.cs`
+- `tests/SystemTrayProcessManager.Tests/Infrastructure/HotkeyManagerServiceTests.cs`
+
 ---
 
 ## Phase 1: Core Infrastructure

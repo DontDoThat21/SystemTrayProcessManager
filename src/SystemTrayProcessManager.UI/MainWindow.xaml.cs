@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
 using SystemTrayProcessManager.UI.ViewModels;
 
@@ -49,6 +50,21 @@ namespace SystemTrayProcessManager.UI
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading processes on window startup");
+            }
+        }
+
+        private void ConfigureHotkeys_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            try
+            {
+                var window = ((App)Application.Current).Services.GetRequiredService<Views.HotkeyConfigWindow>();
+                window.Owner = this;
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to open hotkey configuration");
+                MessageBox.Show("Unable to open hotkey configuration. Please check the application log.", "Hotkey Configuration");
             }
         }
 

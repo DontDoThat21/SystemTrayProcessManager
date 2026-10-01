@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using SystemTrayProcessManager.Core.Enums;
 using SystemTrayProcessManager.Core.Models;
 using SystemTrayProcessManager.Core.Services;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -17,7 +19,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
     {
         private readonly ILogger<HotkeyConfigViewModel> _logger;
         private readonly IHotkeyConfigurationService _configService;
-        private readonly IHotkeyService? _hotkeyService;
+        private readonly IActionMappingService _actionMappingService;
 
         #region Backing Fields
 
@@ -229,15 +231,15 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         /// <param name="configService">The hotkey configuration service.</param>
-        /// <param name="hotkeyService">The hotkey service (optional, for live registration).</param>
+        /// <param name="actionMappingService">The service that applies saved hotkeys to running actions.</param>
         public HotkeyConfigViewModel(
             ILogger<HotkeyConfigViewModel> logger,
             IHotkeyConfigurationService configService,
-            IHotkeyService? hotkeyService = null)
+            IActionMappingService actionMappingService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
-            _hotkeyService = hotkeyService;
+            _actionMappingService = actionMappingService ?? throw new ArgumentNullException(nameof(actionMappingService));
 
             // Initialize commands
             AddHotkeyCommand = new RelayCommand(ExecuteAddHotkey);
@@ -270,10 +272,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
                 var config = await _configService.LoadConfigurationAsync().ConfigureAwait(true);
 
-                HotkeyItems.Clear();
+                ClearItems();
                 foreach (var item in config.Items)
                 {
-                    HotkeyItems.Add(item);
+                    AddItem(item);
                 }
 
                 HasUnsavedChanges = false;
@@ -338,6 +340,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
             _logger.LogDebug("Deleting hotkey: {Name}", SelectedItem.Name);
 
             var itemToRemove = SelectedItem;
+            itemToRemove.PropertyChanged -= OnItemPropertyChanged;
             HotkeyItems.Remove(itemToRemove);
 
             HasUnsavedChanges = true;
@@ -359,9 +362,15 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
             _logger.LogDebug("Saving edit for hotkey: {Name}", EditingItem.Name);
 
+            // The target field is the UI's source of truth for the action mode.
+            EditingItem.TargetProcessName = string.IsNullOrWhiteSpace(EditingItem.TargetProcessName)
+                ? null : EditingItem.TargetProcessName.Trim();
+            EditingItem.ActionMode = EditingItem.TargetProcessName == null
+                ? ActionMode.QuickAction : ActionMode.PinnedProcess;
+
             if (IsAddingNew)
             {
-                HotkeyItems.Add(EditingItem);
+                AddItem(EditingItem);
                 StatusMessage = $"Added: {EditingItem.Name}";
             }
             else
@@ -402,11 +411,20 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
                 if (success)
                 {
-                    HasUnsavedChanges = false;
-                    StatusMessage = "Changes saved successfully";
                     _logger.LogInformation("Saved {Count} hotkey configurations", config.Count);
 
-                    await ReregisterHotkeysAsync().ConfigureAwait(true);
+                    try
+                    {
+                        await _actionMappingService.ReloadMappingsAsync().ConfigureAwait(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Saved hotkeys could not be applied");
+                        StatusMessage = "Changes saved, but hotkeys could not be applied. Check for duplicate shortcuts and try Save Changes again.";
+                        return;
+                    }
+                    HasUnsavedChanges = false;
+                    StatusMessage = "Changes saved and hotkeys applied";
                 }
                 else
                 {
@@ -448,10 +466,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
                 if (config != null)
                 {
-                    HotkeyItems.Clear();
+                    ClearItems();
                     foreach (var item in config.Items)
                     {
-                        HotkeyItems.Add(item);
+                        AddItem(item);
                     }
 
                     HasUnsavedChanges = true;
@@ -522,10 +540,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
             var defaultConfig = _configService.GetDefaultConfiguration();
 
-            HotkeyItems.Clear();
+            ClearItems();
             foreach (var item in defaultConfig.Items)
             {
-                HotkeyItems.Add(item);
+                AddItem(item);
             }
 
             HasUnsavedChanges = true;
@@ -644,24 +662,24 @@ namespace SystemTrayProcessManager.UI.ViewModels
             ConflictWarning = null;
         }
 
-        private async Task ReregisterHotkeysAsync()
+        private void AddItem(HotkeyConfigItem item)
         {
-            if (_hotkeyService == null || !_hotkeyService.IsInitialized)
-            {
-                return;
-            }
+            item.PropertyChanged += OnItemPropertyChanged;
+            HotkeyItems.Add(item);
+        }
 
-            try
+        private void ClearItems()
+        {
+            foreach (var item in HotkeyItems)
             {
-                _logger.LogDebug("Re-registering hotkeys");
-                _logger.LogInformation("Hotkeys would be re-registered here");
+                item.PropertyChanged -= OnItemPropertyChanged;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to re-register hotkeys");
-            }
+            HotkeyItems.Clear();
+        }
 
-            await Task.CompletedTask.ConfigureAwait(false);
+        private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            HasUnsavedChanges = true;
         }
 
         #endregion

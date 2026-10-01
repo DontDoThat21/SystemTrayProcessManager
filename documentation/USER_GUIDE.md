@@ -178,19 +178,21 @@ The application monitors audio sessions in real-time:
 
 Access via:
 - Right-click tray icon → **Hotkey Configuration**
-- Main window menu → **Configuration** → **Hotkeys**
+- Main window → **Configure Hotkeys**
 
 ### Creating a Hotkey
 
-1. Click **Add New** button
-2. Click in the **Key Capture** box
+1. Click **Add** and give the shortcut a name (e.g., "Mute Spotify").
+2. Click in the **Hotkey** capture box.
 3. Press your desired key combination (e.g., `Ctrl+Alt+M`)
-4. Select the **Action** (e.g., Toggle Mute)
-5. Choose the **Mode**:
-   - **Quick Action** - Affects currently focused window
-   - **Pinned Process** - Targets a specific process name
-6. If Pinned Process, enter the **Process Name** (e.g., "spotify")
-7. Click **Save**
+4. Select **ToggleMute** to mute and unmute with the same shortcut.
+5. In **Target**, enter the application's process name (e.g., `Spotify` or `chrome.exe`). Leave it empty to affect the currently focused window instead.
+6. Click **Save** to finish editing the entry.
+7. Click **Save Changes** to persist and immediately activate the shortcut.
+
+Press the shortcut once to mute the target application and again to unmute it. Holding the key does not repeatedly toggle mute. The application must have an audio session (play audio first if needed); audio applications without visible windows can also be targeted by name.
+
+Edit an entry to change its shortcut or target. Clear its checkbox to disable it, then click **Save Changes**. Saved bindings load on the next launch. While the capture box is focused, existing shortcuts are temporarily suspended so recording a key does not execute an action.
 
 ### Action Types
 

@@ -27,6 +27,7 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
             _configServiceMock = new Mock<IHotkeyConfigurationService>();
             _windowServiceMock = new Mock<IWindowService>();
             _audioServiceMock = new Mock<IAudioService>();
+            _audioServiceMock.Setup(a => a.GetAudioProcessesAsync()).ReturnsAsync(Array.Empty<AudioProcessInfo>());
             _processServiceMock = new Mock<IProcessService>();
 
             // Set up default hotkey service behavior
@@ -433,6 +434,67 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
 
         #region ExecutePinnedActionAsync Tests
 
+        [Theory]
+        [InlineData("TestApp")]
+        [InlineData(" testapp.EXE ")]
+        public async Task PinnedToggle_PrefersExactNameOverPartialMatch(string target)
+        {
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(new[]
+            {
+                new ProcessInfo { ProcessId = 456, Name = "TestAppHelper" },
+                new ProcessInfo { ProcessId = 123, Name = "TestApp" }
+            });
+            _audioServiceMock.Setup(a => a.ToggleMuteProcessAsync(123)).ReturnsAsync(true);
+
+            var result = await _service.ExecutePinnedActionAsync(ProcessActionType.ToggleMute, target);
+
+            Assert.True(result.Success);
+            _audioServiceMock.Verify(a => a.ToggleMuteProcessAsync(123), Times.Once);
+            _audioServiceMock.Verify(a => a.ToggleMuteProcessAsync(456), Times.Never);
+        }
+
+        [Fact]
+        public async Task PinnedToggle_FindsAudioApplicationWithoutWindow()
+        {
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(Array.Empty<ProcessInfo>());
+            _audioServiceMock.Setup(a => a.GetAudioProcessesAsync()).ReturnsAsync(new[]
+            {
+                new AudioProcessInfo { ProcessId = 123, ProcessName = "TestApp" }
+            });
+            _audioServiceMock.Setup(a => a.ToggleMuteProcessAsync(123)).ReturnsAsync(true);
+
+            var result = await _service.ExecutePinnedActionAsync(ProcessActionType.ToggleMute, "TestApp.exe");
+
+            Assert.True(result.Success);
+            Assert.Equal(123, result.ProcessId);
+        }
+
+        [Fact]
+        public async Task LegacyTarget_UsesConfiguredApplicationAndTogglesBothDirections()
+        {
+            Func<Task>? callback = null;
+            _hotkeyServiceMock.Setup(h => h.RegisterHotkey(It.IsAny<HotkeyBinding>(), It.IsAny<Func<Task>>(), true))
+                .Callback<HotkeyBinding, Func<Task>, bool>((_, action, _) => callback = action).Returns(true);
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(new[]
+            {
+                new ProcessInfo { ProcessId = 123, Name = "TestApp" }
+            });
+            bool muted = false;
+            _audioServiceMock.Setup(a => a.ToggleMuteProcessAsync(123))
+                .Callback(() => muted = !muted).ReturnsAsync(true);
+            var item = new HotkeyConfigItem("Mute player", 0x4D, HotkeyModifier.Ctrl, "ToggleMute")
+            { TargetProcessName = "TestApp", ActionMode = ActionMode.QuickAction };
+            Assert.True(_service.RegisterActionMapping(item));
+
+            // Unsaved editor mutations must not alter a registered callback.
+            item.TargetProcessName = "OtherApp";
+            await callback!();
+            Assert.True(muted);
+            await callback!();
+            Assert.False(muted);
+            _audioServiceMock.Verify(a => a.ToggleMuteProcessAsync(123), Times.Exactly(2));
+        }
+
         [Fact]
         public async Task ExecutePinnedActionAsync_WithNullProcessName_ShouldThrowArgumentNullException()
         {
@@ -705,6 +767,36 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
         #endregion
 
         #region ReloadMappingsAsync Tests
+
+        [Fact]
+        public async Task ReloadMappings_ReplacesShortcutAndRemovesDisabledMappings()
+        {
+            var item = new HotkeyConfigItem("Mute player", 0x4D, HotkeyModifier.Ctrl, "ToggleMute")
+            { TargetProcessName = "TestApp" };
+            _service.RegisterActionMapping(item);
+            var oldBinding = item.ToHotkeyBinding();
+            item.VirtualKeyCode = 0x55;
+            _configServiceMock.Setup(c => c.LoadConfigurationAsync()).ReturnsAsync(new HotkeyConfiguration(new[] { item }));
+
+            await _service.ReloadMappingsAsync();
+            _hotkeyServiceMock.Verify(h => h.UnregisterHotkey(oldBinding), Times.Once);
+            _hotkeyServiceMock.Verify(h => h.RegisterHotkey(item.ToHotkeyBinding(), It.IsAny<Func<Task>>(), true), Times.Once);
+
+            item.IsEnabled = false;
+            await _service.ReloadMappingsAsync();
+            Assert.Equal(0, _service.MappingCount);
+            _hotkeyServiceMock.Verify(h => h.UnregisterHotkey(item.ToHotkeyBinding()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ReloadMappings_ReportsRegistrationFailure()
+        {
+            var item = new HotkeyConfigItem("Mute player", 0x4D, HotkeyModifier.Ctrl, "ToggleMute");
+            _configServiceMock.Setup(c => c.LoadConfigurationAsync()).ReturnsAsync(new HotkeyConfiguration(new[] { item }));
+            _hotkeyServiceMock.Setup(h => h.RegisterHotkey(It.IsAny<HotkeyBinding>(), It.IsAny<Func<Task>>(), true)).Returns(false);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ReloadMappingsAsync());
+        }
 
         [Fact]
         public async Task ReloadMappingsAsync_ShouldClearExistingMappings()

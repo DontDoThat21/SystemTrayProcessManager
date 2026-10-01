@@ -42,7 +42,7 @@ namespace SystemTrayProcessManager.UI
         /// Initializes the application on startup with logging, DI, and single instance check.
         /// </summary>
         /// <param name="e">Startup event arguments.</param>
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             try
             {
@@ -129,18 +129,16 @@ namespace SystemTrayProcessManager.UI
 
                         // Step 7: Initialize action mapping service
                         _actionMappingService = _serviceProvider.GetRequiredService<IActionMappingService>();
-                        _ = Task.Run(async () =>
+                        // Install the keyboard hook on the dispatcher thread, which owns a message loop.
+                        try
                         {
-                            try
-                            {
-                                await _actionMappingService.InitializeAsync();
-                                Log.Information("Action mapping service initialized.");
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex, "Failed to initialize action mapping service");
-                            }
-                        });
+                            await _actionMappingService.InitializeAsync();
+                            Log.Information("Action mapping service initialized.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "Failed to initialize action mapping service");
+                        }
 
                         // Step 8: Initialize and show main window
                         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();

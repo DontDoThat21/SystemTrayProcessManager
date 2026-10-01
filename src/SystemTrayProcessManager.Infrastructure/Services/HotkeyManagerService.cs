@@ -23,6 +23,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         private readonly ConcurrentDictionary<HotkeyBinding, HotkeyRegistration> _registrations;
         private readonly object _hookLock = new();
         private readonly Stopwatch _responseTimer;
+        private readonly ConcurrentDictionary<int, byte> _pressedKeys = new();
 
         // CRITICAL: Keep delegate reference to prevent garbage collection
         private readonly LowLevelKeyboardProc _hookCallback;
@@ -105,7 +106,6 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <inheritdoc/>
         public bool RegisterHotkey(HotkeyBinding binding, Action action, bool suppressKey = false)
         {
-            ArgumentNullException.ThrowIfNull(binding);
             ArgumentNullException.ThrowIfNull(action);
             ThrowIfDisposed();
             ThrowIfNotInitialized();
@@ -117,7 +117,6 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <inheritdoc/>
         public bool RegisterHotkey(HotkeyBinding binding, Func<Task> asyncAction, bool suppressKey = false)
         {
-            ArgumentNullException.ThrowIfNull(binding);
             ArgumentNullException.ThrowIfNull(asyncAction);
             ThrowIfDisposed();
             ThrowIfNotInitialized();
@@ -129,7 +128,6 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <inheritdoc/>
         public bool UnregisterHotkey(HotkeyBinding binding)
         {
-            ArgumentNullException.ThrowIfNull(binding);
             ThrowIfDisposed();
 
             if (_registrations.TryRemove(binding, out _))
@@ -155,7 +153,6 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <inheritdoc/>
         public bool IsHotkeyRegistered(HotkeyBinding binding)
         {
-            ArgumentNullException.ThrowIfNull(binding);
             return _registrations.ContainsKey(binding);
         }
 
@@ -226,6 +223,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             }
 
             _registrations.Clear();
+            _pressedKeys.Clear();
             _isInitialized = false;
 
             _logger.LogInformation("HotkeyManagerService shutdown complete");
@@ -262,6 +260,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             }
 
             _registrations.Clear();
+            _pressedKeys.Clear();
             _isInitialized = false;
 
             _logger.LogInformation("HotkeyManagerService disposed");
@@ -307,8 +306,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             // CRITICAL: This callback must be fast and must not throw exceptions
             try
             {
-                // Only process if code is HC_ACTION or greater and not suspended
-                if (nCode >= WindowConstants.HC_ACTION && !_isSuspended && !_disposed)
+                // Track key transitions while suspended too, so releases are not missed.
+                if (nCode >= WindowConstants.HC_ACTION && !_disposed)
                 {
                     ProcessKeyboardMessage(wParam, lParam);
                 }
@@ -327,9 +326,9 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         {
             int msg = wParam.ToInt32();
 
-            // Only process key down events (not key up)
             bool isKeyDown = msg == WindowConstants.WM_KEYDOWN || msg == WindowConstants.WM_SYSKEYDOWN;
-            if (!isKeyDown)
+            bool isKeyUp = msg == WindowConstants.WM_KEYUP || msg == WindowConstants.WM_SYSKEYUP;
+            if (!isKeyDown && !isKeyUp)
             {
                 return;
             }
@@ -337,6 +336,12 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             // Parse the keyboard hook structure
             var hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
             int vkCode = hookStruct.vkCode;
+
+            // Track releases even while capture has suspended actions.
+            if (!TryBeginKeyPress(vkCode, isKeyDown) || _isSuspended)
+            {
+                return;
+            }
 
             // Skip if this is a modifier key itself (we wait for the actual key)
             if (VirtualKeyCodes.IsModifierKey(vkCode))
@@ -382,6 +387,20 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                     }
                 });
             }
+        }
+
+        /// <summary>
+        /// Tracks key transitions and allows only one action per physical press.
+        /// </summary>
+        internal bool TryBeginKeyPress(int virtualKeyCode, bool isKeyDown)
+        {
+            if (!isKeyDown)
+            {
+                _pressedKeys.TryRemove(virtualKeyCode, out _);
+                return false;
+            }
+
+            return _pressedKeys.TryAdd(virtualKeyCode, 0);
         }
 
         private static HotkeyModifier GetCurrentModifiers()

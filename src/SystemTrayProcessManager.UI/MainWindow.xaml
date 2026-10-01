@@ -68,6 +68,11 @@
                     </Grid>
 
                     <!-- Refresh button -->
+                    <Button Style="{DynamicResource SecondaryButtonStyle}"
+                            Click="ConfigureHotkeys_Click"
+                            Content="Configure Hotkeys"
+                            Padding="12,6" Margin="0,0,8,0"
+                            ToolTip="Configure an application mute toggle and your own keyboard shortcut"/>
                     <Button Style="{DynamicResource PrimaryButtonStyle}"
                             Command="{Binding RefreshProcessesCommand}"
                             Content="Refresh"

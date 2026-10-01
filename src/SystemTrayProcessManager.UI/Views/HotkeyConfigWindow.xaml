@@ -58,7 +58,8 @@
                        FontSize="20" 
                        FontWeight="Bold"
                        Foreground="{DynamicResource PrimaryBrush}"/>
-            <TextBlock Text="Manage keyboard shortcuts for process actions"
+            <TextBlock Text="Choose ToggleMute to mute/unmute an app with the same shortcut. Save the entry, then Save Changes to apply."
+                       TextWrapping="Wrap"
                        FontSize="12"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="0,5,0,0"/>
@@ -235,6 +236,8 @@
                                                Modifiers="{Binding EditingItem.Modifiers, Mode=TwoWay}"
                                                Margin="0,5"
                                                Height="30"
+                                               GotKeyboardFocus="HotkeyCaptureControl_GotKeyboardFocus"
+                                               LostKeyboardFocus="HotkeyCaptureControl_LostKeyboardFocus"
                                                HotkeyCaptured="HotkeyCaptureControl_HotkeyCaptured"/>
 
                     <!-- Action Type -->
@@ -254,7 +257,7 @@
                              Text="{Binding EditingItem.TargetProcessName, UpdateSourceTrigger=PropertyChanged}"
                              Style="{DynamicResource DarkTextBoxStyle}"
                              Margin="0,5"
-                             ToolTip="Leave empty for focused window"/>
+                             ToolTip="Application process name, such as Spotify or chrome.exe. Leave empty to target the focused window."/>
 
                     <!-- Description -->
                     <TextBlock Grid.Row="3" Grid.Column="0" 

@@ -142,6 +142,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
             try
             {
+                // Keep live callbacks independent of mutable editor/configuration objects.
+                config = config.Clone();
                 var binding = config.ToHotkeyBinding();
 
                 // Create action callback based on config
@@ -268,10 +270,29 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             try
             {
                 // Find the target process
+                var targetName = processName.Trim();
+                if (targetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    targetName = targetName[..^4];
+                }
                 var processes = await _processService.GetRunningProcessesAsync();
                 var targetProcess = processes.FirstOrDefault(p =>
-                    p.Name.Equals(processName, StringComparison.OrdinalIgnoreCase) ||
-                    p.Name.Contains(processName, StringComparison.OrdinalIgnoreCase));
+                    p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+
+                // Audio applications may continue running without a visible window.
+                if (targetProcess == null && actionType is ProcessActionType.Mute or ProcessActionType.Unmute or ProcessActionType.ToggleMute)
+                {
+                    var audioProcesses = await _audioService.GetAudioProcessesAsync();
+                    var audioProcess = audioProcesses.FirstOrDefault(p =>
+                        p.ProcessName.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                    if (audioProcess != null)
+                    {
+                        targetProcess = new ProcessInfo { ProcessId = audioProcess.ProcessId, Name = audioProcess.ProcessName };
+                    }
+                }
+
+                targetProcess ??= processes.FirstOrDefault(p =>
+                    p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
 
                 if (targetProcess == null)
                 {
@@ -379,21 +400,24 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
             _logger.LogInformation("Reloading action mappings...");
 
-            // Unregister all current mappings
+            // Read before removing working bindings so a read failure leaves them intact.
+            var config = await _configService.LoadConfigurationAsync();
             UnregisterAllMappings();
 
-            // Reload from configuration
-            var config = await _configService.LoadConfigurationAsync();
-
+            bool registrationFailed = false;
             if (config?.Items != null)
             {
                 foreach (var item in config.Items.Where(i => i.IsEnabled))
                 {
-                    RegisterActionMapping(item);
+                    registrationFailed |= !RegisterActionMapping(item);
                 }
             }
 
             _logger.LogInformation("Reloaded {Count} action mappings", _mappings.Count);
+            if (registrationFailed)
+            {
+                throw new InvalidOperationException("One or more saved hotkeys could not be registered. Check for duplicate shortcuts.");
+            }
         }
 
         /// <inheritdoc/>
@@ -435,7 +459,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
             ActionExecutionResult result;
 
-            if (config.ActionMode == ActionMode.PinnedProcess && !string.IsNullOrWhiteSpace(config.TargetProcessName))
+            // Older editor versions saved targets without updating ActionMode.
+            if (!string.IsNullOrWhiteSpace(config.TargetProcessName))
             {
                 result = await ExecutePinnedActionAsync(actionType, config.TargetProcessName);
             }
