@@ -27,8 +27,14 @@ try {
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
 }
 $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$existing = Get-ItemPropertyValue -Path $run -Name SystemTrayProcessManager -ErrorAction SilentlyContinue
-if ($EnableStartup -or $existing) {
+$existingStartupValue = $null
+if (Test-Path -LiteralPath $run) {
+    # Get-ItemPropertyValue reports a missing registry value as an error when
+    # $ErrorActionPreference is Stop. Inspect the property's presence instead.
+    $runProperties = Get-ItemProperty -LiteralPath $run
+    $existingStartupValue = $runProperties.PSObject.Properties['SystemTrayProcessManager']
+}
+if ($EnableStartup -or $null -ne $existingStartupValue) {
     New-Item -Path $run -Force | Out-Null
     New-ItemProperty -Path $run -Name SystemTrayProcessManager -Value ('"' + $exe + '" --minimized') -PropertyType String -Force | Out-Null
 }
