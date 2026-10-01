@@ -53,6 +53,21 @@ namespace SystemTrayProcessManager.UI
             }
         }
 
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = ((App)Application.Current).Services.GetRequiredService<Views.SettingsWindow>();
+                window.Owner = this;
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to open settings");
+                MessageBox.Show("Unable to open settings. Please check the application log.", "Settings");
+            }
+        }
+
         private void ConfigureHotkeys_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             try
@@ -104,8 +119,7 @@ namespace SystemTrayProcessManager.UI
         protected override void OnClosing(CancelEventArgs e)
         {
             // Check if the application is shutting down
-            if (Application.Current.ShutdownMode == ShutdownMode.OnExplicitShutdown ||
-                !Application.Current.Windows.OfType<Window>().Any())
+            if (((App)Application.Current).IsExiting)
             {
                 // App is shutting down - allow close and dispose ViewModel
                 _logger.LogDebug("Application shutting down - allowing window close");

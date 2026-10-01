@@ -89,7 +89,7 @@ namespace SystemTrayProcessManager.Core.Models
         /// <summary>
         /// Gets or sets the selected theme name. Supported values: "Dark", "Light".
         /// </summary>
-        public string Theme { get; set; } = "Dark";
+        public string Theme { get; set; } = "System";
 
         /// <summary>
         /// Gets or sets a value indicating whether process icons are shown in the UI.
@@ -160,7 +160,7 @@ namespace SystemTrayProcessManager.Core.Models
 
             if (string.IsNullOrWhiteSpace(sanitized.Theme))
             {
-                sanitized.Theme = "Dark";
+                sanitized.Theme = "System";
             }
 
             if (string.IsNullOrWhiteSpace(sanitized.Version))
@@ -198,9 +198,9 @@ namespace SystemTrayProcessManager.Core.Models
             {
                 errors.Add("Theme is required.");
             }
-            else if (Theme != "Dark" && Theme != "Light")
+            else if (Theme != "System" && Theme != "Dark" && Theme != "Light")
             {
-                errors.Add($"Theme must be 'Dark' or 'Light', was '{Theme}'.");
+                errors.Add($"Theme must be 'System', 'Dark' or 'Light', was '{Theme}'.");
             }
 
             return errors;

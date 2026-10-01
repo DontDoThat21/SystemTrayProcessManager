@@ -439,7 +439,8 @@ namespace SystemTrayProcessManager.UI.Services
                     using var stream = assembly.GetManifestResourceStream(iconResourceName);
                     if (stream != null)
                     {
-                        return new Icon(stream);
+                        using var loaded = new Icon(stream);
+                        return (Icon)loaded.Clone();
                     }
                 }
 
@@ -448,7 +449,9 @@ namespace SystemTrayProcessManager.UI.Services
                 var resourceStream = System.Windows.Application.GetResourceStream(uri);
                 if (resourceStream?.Stream != null)
                 {
-                    return new Icon(resourceStream.Stream);
+                    using var stream = resourceStream.Stream;
+                    using var loaded = new Icon(stream);
+                    return (Icon)loaded.Clone();
                 }
             }
             catch
@@ -466,25 +469,7 @@ namespace SystemTrayProcessManager.UI.Services
         /// <returns>Generated icon.</returns>
         private static Icon GenerateDefaultIcon()
         {
-            const int size = 32;
-            using var bitmap = new Bitmap(size, size);
-            using var graphics = Graphics.FromImage(bitmap);
-
-            // Fill with a nice blue color
-            using var brush = new SolidBrush(Color.FromArgb(0, 120, 215));
-            graphics.FillRectangle(brush, 0, 0, size, size);
-
-            // Add "PM" text
-            using var font = new Font("Segoe UI", 10, FontStyle.Bold);
-            using var textBrush = new SolidBrush(Color.White);
-            var textSize = graphics.MeasureString("PM", font);
-            var x = (size - textSize.Width) / 2;
-            var y = (size - textSize.Height) / 2;
-            graphics.DrawString("PM", font, textBrush, x, y);
-
-            // Convert bitmap to icon
-            var hIcon = bitmap.GetHicon();
-            return Icon.FromHandle(hIcon);
+            return (Icon)SystemIcons.Application.Clone();
         }
 
         /// <summary>

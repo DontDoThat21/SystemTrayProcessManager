@@ -15,6 +15,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         private readonly IConfigurationService _configurationService;
         private readonly ILogger<SettingsViewModel> _logger;
         private AppSettings? _originalSettings;
+        private readonly IStartupManagerService _startupManager;
 
         #region Observable Properties
 
@@ -70,7 +71,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// Gets or sets the selected theme name.
         /// </summary>
         [ObservableProperty]
-        private string _theme = "Dark";
+        private string _theme = "System";
 
         /// <summary>
         /// Gets or sets a value indicating whether process icons are shown.
@@ -107,7 +108,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Gets the available themes.
         /// </summary>
-        public IReadOnlyList<string> AvailableThemes { get; } = new[] { "Dark", "Light" };
+        public IReadOnlyList<string> AvailableThemes { get; } = new[] { "System", "Dark", "Light" };
 
         /// <summary>
         /// Delegate to request a file path for importing settings. Set by the View.
@@ -133,8 +134,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <param name="logger">The logger instance.</param>
         public SettingsViewModel(
             IConfigurationService configurationService,
-            ILogger<SettingsViewModel> logger)
+            ILogger<SettingsViewModel> logger,
+            IStartupManagerService startupManager)
         {
+            _startupManager = startupManager ?? throw new ArgumentNullException(nameof(startupManager));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -152,6 +155,8 @@ namespace SystemTrayProcessManager.UI.ViewModels
                 _logger.LogDebug("Loading settings into ViewModel");
 
                 var settings = await _configurationService.LoadSettingsAsync().ConfigureAwait(true);
+                await _startupManager.RefreshStartupStatusAsync();
+                settings.StartWithWindows = _startupManager.IsStartupEnabled;
                 ApplySettingsToProperties(settings);
                 _originalSettings = settings.Clone();
                 HasChanges = false;
@@ -183,6 +188,14 @@ namespace SystemTrayProcessManager.UI.ViewModels
                 _logger.LogDebug("Saving settings from ViewModel");
 
                 var settings = BuildSettingsFromProperties();
+                var startupSuccess = StartWithWindows
+                    ? await _startupManager.EnableStartupAsync(StartMinimized)
+                    : await _startupManager.DisableStartupAsync();
+                if (!startupSuccess)
+                {
+                    StatusMessage = "Startup registration failed. Install the app using scripts/Install.ps1, then try again. If disabled in Task Manager, enable it there.";
+                    return;
+                }
                 var success = await _configurationService.SaveSettingsAsync(settings).ConfigureAwait(true);
 
                 if (success)

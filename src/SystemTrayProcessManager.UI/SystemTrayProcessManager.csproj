@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Resources/Icons/tray-icon.ico</ApplicationIcon>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -43,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Resources\Icons\" />
+    <Resource Include="Resources/Icons/tray-icon.ico" />
     <Folder Include="Resources\Themes\" />
     <Folder Include="Services\" />
   </ItemGroup>

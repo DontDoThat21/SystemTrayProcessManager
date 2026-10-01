@@ -25,7 +25,7 @@ namespace SystemTrayProcessManager.Tests.Core
             settings.EnableNotifications.Should().BeTrue();
             settings.MinimizeToTray.Should().BeTrue();
             settings.ProcessRefreshIntervalMs.Should().Be(5000);
-            settings.Theme.Should().Be("Dark");
+            settings.Theme.Should().Be("System");
             settings.ShowProcessIcons.Should().BeTrue();
             settings.AnimationsEnabled.Should().BeTrue();
         }
@@ -218,7 +218,7 @@ namespace SystemTrayProcessManager.Tests.Core
             clone.Theme = "Light";
             clone.HotkeysEnabled = false;
 
-            original.Theme.Should().Be("Dark");
+            original.Theme.Should().Be("System");
             original.HotkeysEnabled.Should().BeTrue();
         }
 
@@ -263,7 +263,7 @@ namespace SystemTrayProcessManager.Tests.Core
         {
             var settings = new AppSettings { Theme = null! };
             var sanitized = settings.Sanitize();
-            sanitized.Theme.Should().Be("Dark");
+            sanitized.Theme.Should().Be("System");
         }
 
         [Fact]
@@ -271,7 +271,7 @@ namespace SystemTrayProcessManager.Tests.Core
         {
             var settings = new AppSettings { Theme = "" };
             var sanitized = settings.Sanitize();
-            sanitized.Theme.Should().Be("Dark");
+            sanitized.Theme.Should().Be("System");
         }
 
         [Fact]

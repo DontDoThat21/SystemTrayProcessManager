@@ -366,7 +366,7 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
             // Reset
             var result = await _service.ResetToDefaultsAsync();
 
-            result.Theme.Should().Be("Dark");
+            result.Theme.Should().Be("System");
             result.HotkeysEnabled.Should().BeTrue();
             result.IsFirstRun.Should().BeFalse(); // Not first run when explicitly resetting
         }
@@ -378,7 +378,7 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
             await _service.ResetToDefaultsAsync();
 
             var loaded = await _service.LoadSettingsAsync();
-            loaded.Theme.Should().Be("Dark");
+            loaded.Theme.Should().Be("System");
         }
 
         #endregion

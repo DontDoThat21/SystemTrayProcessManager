@@ -2,16 +2,16 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================ -->
-    <!-- Dark Theme Color Palette                     -->
+    <!-- Light Theme Color Palette                     -->
     <!-- SystemTrayProcessManager                     -->
     <!-- ============================================ -->
 
     <!-- Background Colors -->
-    <Color x:Key="BackgroundColor">#15191F</Color>
-    <Color x:Key="SurfaceColor">#1C222B</Color>
-    <Color x:Key="CardColor">#232B36</Color>
-    <Color x:Key="CardHoverColor">#303C4B</Color>
-    <Color x:Key="CardSelectedColor">#173F60</Color>
+    <Color x:Key="BackgroundColor">#F3F6FA</Color>
+    <Color x:Key="SurfaceColor">#FFFFFF</Color>
+    <Color x:Key="CardColor">#FFFFFF</Color>
+    <Color x:Key="CardHoverColor">#E8EFF7</Color>
+    <Color x:Key="CardSelectedColor">#DAEBFC</Color>
 
     <!-- Accent Colors -->
     <Color x:Key="PrimaryColor">#0078D4</Color>
@@ -19,19 +19,19 @@
     <Color x:Key="PrimaryPressedColor">#005A9E</Color>
     <Color x:Key="DangerColor">#E81123</Color>
     <Color x:Key="DangerHoverColor">#C50F1F</Color>
-    <Color x:Key="WarningColor">#FFB900</Color>
-    <Color x:Key="SuccessColor">#46B985</Color>
+    <Color x:Key="WarningColor">#956900</Color>
+    <Color x:Key="SuccessColor">#16734B</Color>
 
     <!-- Text Colors -->
-    <Color x:Key="TextPrimaryColor">#F0F4FA</Color>
-    <Color x:Key="TextSecondaryColor">#A8B5C6</Color>
-    <Color x:Key="TextDisabledColor">#788699</Color>
+    <Color x:Key="TextPrimaryColor">#172334</Color>
+    <Color x:Key="TextSecondaryColor">#526277</Color>
+    <Color x:Key="TextDisabledColor">#718095</Color>
     <Color x:Key="TextInverseColor">#FFFFFF</Color>
 
     <!-- Border Colors -->
-    <Color x:Key="BorderColor">#364251</Color>
+    <Color x:Key="BorderColor">#CFD9E5</Color>
     <Color x:Key="BorderFocusColor">#0078D4</Color>
-    <Color x:Key="DividerColor">#2C3542</Color>
+    <Color x:Key="DividerColor">#DFE6EE</Color>
 
     <!-- ============================================ -->
     <!-- Solid Color Brushes                          -->

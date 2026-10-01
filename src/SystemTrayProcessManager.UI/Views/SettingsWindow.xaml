@@ -44,6 +44,8 @@
                                   Margin="0,4"
                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
+                        <TextBlock Text="Appears in Task Manager → Startup apps. Requires an installed or published copy."
+                                   TextWrapping="Wrap" Margin="0,4,0,8" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <CheckBox Content="Start minimized to system tray"
                                   IsChecked="{Binding StartMinimized}"
                                   Margin="0,4"

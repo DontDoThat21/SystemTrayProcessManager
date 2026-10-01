@@ -15,12 +15,15 @@ namespace SystemTrayProcessManager.Tests.UI
         private readonly Mock<IConfigurationService> _configServiceMock;
         private readonly Mock<ILogger<SettingsViewModel>> _loggerMock;
         private readonly SettingsViewModel _viewModel;
+        private readonly Mock<IStartupManagerService> _startup = new();
 
         public SettingsViewModelTests()
         {
             _configServiceMock = new Mock<IConfigurationService>();
             _loggerMock = new Mock<ILogger<SettingsViewModel>>();
 
+            _startup.Setup(s => s.EnableStartupAsync(It.IsAny<bool>())).ReturnsAsync(true);
+            _startup.Setup(s => s.DisableStartupAsync()).ReturnsAsync(true);
             // Setup default behavior
             _configServiceMock.Setup(s => s.LoadSettingsAsync())
                 .ReturnsAsync(AppSettings.Default);
@@ -31,7 +34,34 @@ namespace SystemTrayProcessManager.Tests.UI
             _configServiceMock.Setup(s => s.GetDefaults())
                 .Returns(AppSettings.Default);
 
-            _viewModel = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object);
+            _viewModel = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object, _startup.Object);
+        }
+
+        [Fact]
+        public async Task SaveSettings_StartupFailureDoesNotPersistOrClose()
+        {
+            _viewModel.StartWithWindows = true;
+            _startup.Setup(s => s.EnableStartupAsync(It.IsAny<bool>())).ReturnsAsync(false);
+            await _viewModel.SaveAndCloseAsync();
+            _configServiceMock.Verify(s => s.SaveSettingsAsync(It.IsAny<AppSettings>()), Times.Never);
+            _viewModel.StatusMessage.Should().Contain("Startup registration failed");
+        }
+
+        [Fact]
+        public async Task LoadSettings_UsesWindowsStartupState()
+        {
+            _startup.SetupGet(s => s.IsStartupEnabled).Returns(true);
+            await _viewModel.LoadSettingsAsync();
+            _viewModel.StartWithWindows.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task SaveSettings_RegistersSelectedStartupMode()
+        {
+            _viewModel.StartWithWindows = true;
+            _viewModel.StartMinimized = false;
+            await _viewModel.SaveSettingsAsync();
+            _startup.Verify(s => s.EnableStartupAsync(false), Times.Once);
         }
 
         #region Constructor
@@ -39,24 +69,24 @@ namespace SystemTrayProcessManager.Tests.UI
         [Fact]
         public void Constructor_NullConfigService_ThrowsArgumentNullException()
         {
-            var act = () => new SettingsViewModel(null!, _loggerMock.Object);
+            var act = () => new SettingsViewModel(null!, _loggerMock.Object, _startup.Object);
             act.Should().Throw<ArgumentNullException>().WithParameterName("configurationService");
         }
 
         [Fact]
         public void Constructor_NullLogger_ThrowsArgumentNullException()
         {
-            var act = () => new SettingsViewModel(_configServiceMock.Object, null!);
+            var act = () => new SettingsViewModel(_configServiceMock.Object, null!, _startup.Object);
             act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
         }
 
         [Fact]
         public void Constructor_InitializesDefaultValues()
         {
-            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object);
+            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object, _startup.Object);
             vm.HotkeysEnabled.Should().BeTrue();
             vm.DefaultVolume.Should().Be(1.0f);
-            vm.Theme.Should().Be("Dark");
+            vm.Theme.Should().Be("System");
             vm.IsBusy.Should().BeFalse();
             vm.HasChanges.Should().BeFalse();
         }
@@ -189,7 +219,7 @@ namespace SystemTrayProcessManager.Tests.UI
 
             await _viewModel.ResetToDefaultsAsync();
 
-            _viewModel.Theme.Should().Be("Dark");
+            _viewModel.Theme.Should().Be("System");
             _viewModel.HotkeysEnabled.Should().BeTrue();
         }
 
@@ -370,9 +400,9 @@ namespace SystemTrayProcessManager.Tests.UI
         }
 
         [Fact]
-        public void AvailableThemes_HasTwoEntries()
+        public void AvailableThemes_HasThreeEntries()
         {
-            _viewModel.AvailableThemes.Should().HaveCount(2);
+            _viewModel.AvailableThemes.Should().HaveCount(3);
         }
 
         #endregion
@@ -594,7 +624,7 @@ namespace SystemTrayProcessManager.Tests.UI
         public void RequestClose_NoSubscribers_DoesNotThrow()
         {
             // Just verify no exception
-            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object);
+            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object, _startup.Object);
             vm.Should().NotBeNull();
         }
 
@@ -605,14 +635,14 @@ namespace SystemTrayProcessManager.Tests.UI
         [Fact]
         public void RequestImportFilePath_DefaultsNull()
         {
-            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object);
+            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object, _startup.Object);
             vm.RequestImportFilePath.Should().BeNull();
         }
 
         [Fact]
         public void RequestExportFilePath_DefaultsNull()
         {
-            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object);
+            var vm = new SettingsViewModel(_configServiceMock.Object, _loggerMock.Object, _startup.Object);
             vm.RequestExportFilePath.Should().BeNull();
         }
 

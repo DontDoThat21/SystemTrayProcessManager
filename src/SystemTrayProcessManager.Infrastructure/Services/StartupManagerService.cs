@@ -49,7 +49,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             {
                 return await Task.Run(() =>
                 {
-                    using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, writable: true);
+                    using var key = Registry.CurrentUser.CreateSubKey(RegistryKeyPath, writable: true);
                     if (key == null)
                     {
                         _logger.LogError("Failed to open registry key: {KeyPath}", RegistryKeyPath);
@@ -57,18 +57,23 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                     }
 
                     var executablePath = GetExecutablePath();
+                    if (!IsStableExecutablePath(executablePath))
+                    {
+                        _logger.LogWarning("Install the application before registering startup: {Path}", executablePath);
+                        return false;
+                    }
                     var value = startMinimized
                         ? $"\"{executablePath}\" --minimized"
                         : $"\"{executablePath}\"";
 
                     key.SetValue(AppName, value, RegistryValueKind.String);
 
-                    _isStartupEnabled = true;
+                    _isStartupEnabled = CheckStartupStatus();
                     _logger.LogInformation("Enabled startup with Windows. Path: {Path}, Minimized: {Minimized}",
                         executablePath, startMinimized);
 
-                    StartupStateChanged?.Invoke(this, true);
-                    return true;
+                    StartupStateChanged?.Invoke(this, _isStartupEnabled);
+                    return _isStartupEnabled;
                 }).ConfigureAwait(false);
             }
             catch (UnauthorizedAccessException ex)
@@ -90,7 +95,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             {
                 return await Task.Run(() =>
                 {
-                    using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, writable: true);
+                    using var key = Registry.CurrentUser.CreateSubKey(RegistryKeyPath, writable: true);
                     if (key == null)
                     {
                         _logger.LogError("Failed to open registry key: {KeyPath}", RegistryKeyPath);
@@ -164,7 +169,11 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                 }
 
                 var value = key.GetValue(AppName);
-                return value != null;
+                if (value is not string command || string.IsNullOrWhiteSpace(command)) return false;
+                // Respect changes made by Task Manager instead of silently re-enabling them.
+                using var approval = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run");
+                var state = approval?.GetValue(AppName) as byte[];
+                return state == null || state.Length == 0 || state[0] == 2 || state[0] == 6;
             }
             catch (Exception ex)
             {
@@ -176,23 +185,20 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <summary>
         /// Gets the path to the current executable.
         /// </summary>
+        internal static bool IsStableExecutablePath(string path)
+        {
+            return !string.IsNullOrWhiteSpace(path)
+                && System.IO.File.Exists(path)
+                && path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(System.IO.Path.GetFileName(path), "dotnet.exe", StringComparison.OrdinalIgnoreCase)
+                && !path.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+                    .Any(part => part.Equals("bin", StringComparison.OrdinalIgnoreCase)
+                        || part.Equals("obj", StringComparison.OrdinalIgnoreCase));
+        }
+
         private static string GetExecutablePath()
         {
-            // Get the executing assembly's location
-            var location = System.Reflection.Assembly.GetEntryAssembly()?.Location;
-
-            if (string.IsNullOrEmpty(location))
-            {
-                location = Environment.ProcessPath;
-            }
-
-            // Handle .dll entries (common in .NET 5+)
-            if (location?.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                location = location[..^4] + ".exe";
-            }
-
-            return location ?? string.Empty;
+            return Environment.ProcessPath ?? string.Empty;
         }
     }
 }

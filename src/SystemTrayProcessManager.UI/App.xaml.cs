@@ -25,6 +25,12 @@ namespace SystemTrayProcessManager.UI
         private IServiceProvider? _serviceProvider;
         private Mutex? _instanceMutex;
         private bool _mutexCreated;
+        private EventWaitHandle? _activationEvent;
+        private RegisteredWaitHandle? _activationWait;
+        private ThemeService? _themeService;
+
+        /// <summary>Whether an explicit application exit is underway.</summary>
+        public bool IsExiting { get; private set; }
         private ITrayIconService? _trayIconService;
         private IProcessService? _processService;
         private IActionMappingService? _actionMappingService;
@@ -89,7 +95,9 @@ namespace SystemTrayProcessManager.UI
 
                         // Step 4d: Load application settings
                         _configurationService = _serviceProvider.GetRequiredService<IConfigurationService>();
-                        var settings = _configurationService.LoadSettingsAsync().GetAwaiter().GetResult();
+                        var settings = await _configurationService.LoadSettingsAsync();
+                        _themeService = new ThemeService(_configurationService);
+                        _themeService.Apply(settings.Theme);
                         Log.Information("Application settings loaded: {Settings}", settings);
 
                         // Step 4e: Check for first run and show wizard
@@ -143,7 +151,12 @@ namespace SystemTrayProcessManager.UI
                         // Step 8: Initialize and show main window
                         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
                         MainWindow = mainWindow;
-                        mainWindow.Show();
+                        if (!e.Args.Contains("--minimized", StringComparer.OrdinalIgnoreCase)
+                            && (e.Args.Contains("--show", StringComparer.OrdinalIgnoreCase) || !settings.StartMinimized))
+                            mainWindow.Show();
+                        _activationWait = ThreadPool.RegisterWaitForSingleObject(_activationEvent!,
+                            (_, _) => Dispatcher.InvokeAsync(() => OnTrayIconClicked(this, EventArgs.Empty)),
+                            null, Timeout.Infinite, false);
 
                         // Step 8a: Record startup complete and update icon cache stats
                         _performanceMonitorService.RecordStartupComplete();
@@ -201,6 +214,7 @@ namespace SystemTrayProcessManager.UI
                             private void OnExitRequested(object? sender, EventArgs e)
                             {
                                 Log.Information("Exit requested from tray icon menu");
+                                IsExiting = true;
                                 Shutdown(0);
                             }
 
@@ -274,7 +288,11 @@ namespace SystemTrayProcessManager.UI
                 {
                     try
                     {
+                        IsExiting = true;
                         Log.Information("Application shutting down...");
+                        _activationWait?.Unregister(null);
+                        _activationEvent?.Dispose();
+                        _themeService?.Dispose();
 
                         // Unsubscribe from tray events and dispose
                                 if (_trayIconService != null)
@@ -513,15 +531,17 @@ namespace SystemTrayProcessManager.UI
 
                 if (!_mutexCreated)
                 {
-                    MessageBox.Show(
-                        "SystemTrayProcessManager is already running.\n\nOnly one instance of the application can run at a time.",
-                        "Already Running",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    using var activation = new EventWaitHandle(false, EventResetMode.AutoReset,
+                        "Local\\SystemTrayProcessManager_Activate");
+                    activation.Set();
+                    _instanceMutex.Dispose();
+                    _instanceMutex = null;
 
                     return false;
                 }
 
+                _activationEvent = new EventWaitHandle(false, EventResetMode.AutoReset,
+                    "Local\\SystemTrayProcessManager_Activate");
                 return true;
             }
             catch (Exception ex)

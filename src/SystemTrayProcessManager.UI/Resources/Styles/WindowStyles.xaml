@@ -8,6 +8,7 @@
 
     <!-- Dark Window Style -->
     <Style x:Key="DarkWindowStyle" TargetType="Window">
+        <Setter Property="Icon" Value="pack://application:,,,/SystemTrayProcessManager;component/Resources/Icons/tray-icon.ico"/>
         <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource DefaultFontFamily}"/>
@@ -19,7 +20,7 @@
     <!-- Header Panel Style -->
     <Style x:Key="HeaderPanelStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="Padding" Value="24,20"/>
         <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
     </Style>
@@ -63,7 +64,7 @@
     <!-- Card Container Style -->
     <Style x:Key="CardContainerStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="12"/>
         <Setter Property="Margin" Value="4"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>

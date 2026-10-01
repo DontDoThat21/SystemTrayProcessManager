@@ -39,7 +39,7 @@
                 <!-- Title area -->
                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Style="{DynamicResource HeaderTitleStyle}"
-                               Text="Process Manager"/>
+                               Text="Your workspace"/>
                     <TextBlock Style="{DynamicResource HeaderSubtitleStyle}"
                                Text="{Binding StatusText}"/>
                 </StackPanel>
@@ -70,6 +70,9 @@
                                 IsHitTestVisible="False"/>
                     </Grid>
 
+                    <Button Style="{DynamicResource SecondaryButtonStyle}" Click="Settings_Click"
+                            Content="Settings" Padding="12,6" Margin="0,0,8,0"
+                            ToolTip="Startup, appearance, and preferences"/>
                     <!-- Refresh button -->
                     <Button Style="{DynamicResource SecondaryButtonStyle}"
                             Click="ConfigureHotkeys_Click"
@@ -87,7 +90,7 @@
 
         <!-- ==================== Search Bar ==================== -->
         <Border Grid.Row="1" 
-                Padding="16,8"
+                Padding="24,14"
                 Background="{DynamicResource SurfaceBrush}">
             <Grid>
                 <!-- Search icon -->
