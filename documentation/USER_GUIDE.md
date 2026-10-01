@@ -182,13 +182,18 @@ Access via:
 
 ### Creating a Hotkey
 
+For application-specific shortcuts, click **Hotkeys** on that application's process card. Each action has its own row: **ToggleMute**, **Mute**, **Unmute**, **Minimize**, **Maximize**, **Restore**, **Close**, **BringToFront**, **Hide**, **Show**, and **ToggleAlwaysOnTop**.
+
+Click a shortcut field and press your key combination, then click **Save & Apply**. You can assign several different actions at once. Use the checkbox to disable a shortcut or **Clear** to remove it. Saving updates the running hotkeys immediately and retains other applications' shortcuts. Conflicting combinations are reported before saving. Settings are associated with the application's executable name so they survive restarts.
+
+The main **Configure Hotkeys** window also supports focused-window shortcuts and advanced editing:
+
 1. Click **Add** and give the shortcut a name (e.g., "Mute Spotify").
 2. Click in the **Hotkey** capture box.
 3. Press your desired key combination (e.g., `Ctrl+Alt+M`)
 4. Select **ToggleMute** to mute and unmute with the same shortcut.
 5. In **Target**, enter the application's process name (e.g., `Spotify` or `chrome.exe`). Leave it empty to affect the currently focused window instead.
-6. Click **Save** to finish editing the entry.
-7. Click **Save Changes** to persist and immediately activate the shortcut.
+6. Click **Save & Apply** to persist and immediately activate the shortcut. No second save is needed. **Save Changes** also includes the entry currently being edited.
 
 Press the shortcut once to mute the target application and again to unmute it. Holding the key does not repeatedly toggle mute. The application must have an audio session (play audio first if needed); audio applications without visible windows can also be targeted by name.
 
@@ -208,6 +213,7 @@ Edit an entry to change its shortcut or target. Clear its checkbox to disable it
 | Bring To Front | Activate window |
 | Hide | Hide window |
 | Show | Show hidden window |
+| ToggleAlwaysOnTop | Toggle whether the application's window stays above others |
 
 ### Modifier Keys
 

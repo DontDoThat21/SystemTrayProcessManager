@@ -75,6 +75,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
                 {
                     SaveEditCommand.NotifyCanExecuteChanged();
                     CancelEditCommand.NotifyCanExecuteChanged();
+                    SaveAllChangesCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -145,7 +146,14 @@ namespace SystemTrayProcessManager.UI.ViewModels
         public bool IsBusy
         {
             get => _isBusy;
-            set => SetProperty(ref _isBusy, value);
+            set
+            {
+                if (SetProperty(ref _isBusy, value))
+                {
+                    SaveEditCommand.NotifyCanExecuteChanged();
+                    SaveAllChangesCommand.NotifyCanExecuteChanged();
+                }
+            }
         }
 
         #endregion
@@ -155,7 +163,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Gets the available action types.
         /// </summary>
-        public IReadOnlyList<string> ActionTypes { get; } =
+        public IReadOnlyList<string> ActionTypes => AvailableActionTypes;
+
+        /// <summary>Gets the actions configurable globally or for an individual application.</summary>
+        public static IReadOnlyList<string> AvailableActionTypes { get; } =
         [
             "ToggleMute",
             "Mute",
@@ -182,17 +193,17 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Gets the command to edit the selected hotkey.
         /// </summary>
-        public RelayCommand EditHotkeyCommand { get; }
+        public RelayCommand<HotkeyConfigItem> EditHotkeyCommand { get; }
 
         /// <summary>
         /// Gets the command to delete the selected hotkey.
         /// </summary>
-        public RelayCommand DeleteHotkeyCommand { get; }
+        public RelayCommand<HotkeyConfigItem> DeleteHotkeyCommand { get; }
 
         /// <summary>
         /// Gets the command to save the current edit.
         /// </summary>
-        public RelayCommand SaveEditCommand { get; }
+        public AsyncRelayCommand SaveEditCommand { get; }
 
         /// <summary>
         /// Gets the command to cancel the current edit.
@@ -243,9 +254,9 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
             // Initialize commands
             AddHotkeyCommand = new RelayCommand(ExecuteAddHotkey);
-            EditHotkeyCommand = new RelayCommand(ExecuteEditHotkey, CanExecuteEditHotkey);
-            DeleteHotkeyCommand = new RelayCommand(ExecuteDeleteHotkey, CanExecuteDeleteHotkey);
-            SaveEditCommand = new RelayCommand(ExecuteSaveEdit, CanExecuteSaveEdit);
+            EditHotkeyCommand = new RelayCommand<HotkeyConfigItem>(item => { SelectedItem = item ?? SelectedItem; ExecuteEditHotkey(); }, item => item != null || CanExecuteEditHotkey());
+            DeleteHotkeyCommand = new RelayCommand<HotkeyConfigItem>(item => { SelectedItem = item ?? SelectedItem; ExecuteDeleteHotkey(); }, item => item != null || CanExecuteDeleteHotkey());
+            SaveEditCommand = new AsyncRelayCommand(ExecuteSaveAllChangesAsync, CanExecuteSaveEdit);
             CancelEditCommand = new RelayCommand(ExecuteCancelEdit, CanExecuteCancelEdit);
             SaveAllChangesCommand = new AsyncRelayCommand(ExecuteSaveAllChangesAsync, CanExecuteSaveAllChanges);
             ImportConfigurationCommand = new AsyncRelayCommand(ExecuteImportConfigurationAsync);
@@ -351,13 +362,13 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
         private bool CanExecuteDeleteHotkey() => SelectedItem != null;
 
-        private void ExecuteSaveEdit()
+        private bool CommitEdit()
         {
-            if (EditingItem == null) return;
+            if (EditingItem == null) return false;
 
             if (!ValidateEdit())
             {
-                return;
+                return false;
             }
 
             _logger.LogDebug("Saving edit for hotkey: {Name}", EditingItem.Name);
@@ -385,9 +396,10 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
             HasUnsavedChanges = true;
             CloseEditPanel();
+            return true;
         }
 
-        private bool CanExecuteSaveEdit() => IsEditing;
+        private bool CanExecuteSaveEdit() => IsEditing && !IsBusy;
 
         private void ExecuteCancelEdit()
         {
@@ -399,6 +411,8 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
         private async Task ExecuteSaveAllChangesAsync()
         {
+            // Both Save buttons commit the visible edit before persisting and applying it.
+            if (IsEditing && !CommitEdit()) return;
             try
             {
                 IsBusy = true;
@@ -442,7 +456,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
             }
         }
 
-        private bool CanExecuteSaveAllChanges() => HasUnsavedChanges;
+        private bool CanExecuteSaveAllChanges() => (HasUnsavedChanges || IsEditing) && !IsBusy;
 
         private async Task ExecuteImportConfigurationAsync()
         {

@@ -18,6 +18,9 @@
     <Window.Resources>
         <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
         <converters:BoolToMuteIconConverter x:Key="BoolToMuteIconConverter"/>
+        <Style TargetType="Button" x:Key="ProcessHotkeysButtonStyle" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <EventSetter Event="Click" Handler="ProcessHotkeys_Click"/>
+        </Style>
         <!-- Inverse bool to visibility -->
         <converters:InverseBoolConverter x:Key="InverseBoolToVisConverterHelper"/>
     </Window.Resources>
@@ -134,7 +137,7 @@
                               ItemTemplate="{DynamicResource ProcessCardTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
+                            <WrapPanel Orientation="Horizontal" ItemWidth="300" ItemHeight="156"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>

@@ -27,8 +27,7 @@ public class HotkeyConfigViewModelTests
         vm.AddHotkeyCommand.Execute(null);
         vm.EditingItem!.TargetProcessName = target;
         vm.OnHotkeyCaptured(new HotkeyBinding(0x4D, HotkeyModifier.Ctrl | HotkeyModifier.Alt));
-        vm.SaveEditCommand.Execute(null);
-        await vm.SaveAllChangesCommand.ExecuteAsync(null);
+        await vm.SaveEditCommand.ExecuteAsync(null);
 
         var item = Assert.Single(saved!.Items);
         Assert.Equal("ToggleMute", item.ActionType);
@@ -54,7 +53,7 @@ public class HotkeyConfigViewModelTests
         vm.SelectedItem = Assert.Single(vm.HotkeyItems);
         vm.EditHotkeyCommand.Execute(null);
         vm.EditingItem!.TargetProcessName = "";
-        vm.SaveEditCommand.Execute(null);
+        await vm.SaveEditCommand.ExecuteAsync(null);
         Assert.Equal(ActionMode.QuickAction, vm.SelectedItem.ActionMode);
         Assert.Null(vm.SelectedItem.TargetProcessName);
     }
@@ -98,16 +97,39 @@ public class HotkeyConfigViewModelTests
     }
 
     [Fact]
-    public void ConflictingShortcut_IsNotAdded()
+    public async Task ConflictingShortcut_IsNotAdded()
     {
         var config = new Mock<IHotkeyConfigurationService>();
         config.Setup(c => c.HasConflict(It.IsAny<HotkeyBinding>(), It.IsAny<IEnumerable<HotkeyConfigItem>>(), It.IsAny<Guid?>())).Returns(true);
         var vm = new HotkeyConfigViewModel(NullLogger<HotkeyConfigViewModel>.Instance, config.Object, Mock.Of<IActionMappingService>());
         vm.AddHotkeyCommand.Execute(null);
         vm.OnHotkeyCaptured(new HotkeyBinding(0x4D, HotkeyModifier.Ctrl));
-        vm.SaveEditCommand.Execute(null);
+        await vm.SaveEditCommand.ExecuteAsync(null);
         Assert.Empty(vm.HotkeyItems);
         Assert.True(vm.IsEditing);
         Assert.NotNull(vm.ValidationMessage);
+    }
+
+    [Fact]
+    public async Task SaveAll_CommitsCurrentEditAndRowButtonEditsItsOwnItem()
+    {
+        var first = new HotkeyConfigItem("First", 0x4D, HotkeyModifier.Ctrl, "ToggleMute");
+        var second = new HotkeyConfigItem("Second", 0x4E, HotkeyModifier.Ctrl, "Minimize");
+        var config = new Mock<IHotkeyConfigurationService>();
+        config.Setup(c => c.LoadConfigurationAsync()).ReturnsAsync(new HotkeyConfiguration(new[] { first, second }));
+        config.Setup(c => c.SaveConfigurationAsync(It.IsAny<HotkeyConfiguration>())).ReturnsAsync(true);
+        var actions = new Mock<IActionMappingService>();
+        var vm = new HotkeyConfigViewModel(NullLogger<HotkeyConfigViewModel>.Instance, config.Object, actions.Object);
+        await vm.LoadConfigurationAsync();
+        vm.SelectedItem = first;
+        vm.EditHotkeyCommand.Execute(second);
+        Assert.Equal(second.Id, vm.EditingItem!.Id);
+        vm.OnHotkeyCaptured(new HotkeyBinding(0x50, HotkeyModifier.Alt));
+        Assert.True(vm.SaveAllChangesCommand.CanExecute(null));
+        await vm.SaveAllChangesCommand.ExecuteAsync(null);
+        Assert.Equal(0x4D, first.VirtualKeyCode);
+        Assert.Equal(0x50, second.VirtualKeyCode);
+        Assert.False(vm.IsEditing);
+        actions.Verify(a => a.ReloadMappingsAsync(), Times.Once);
     }
 }

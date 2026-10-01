@@ -4,8 +4,9 @@
 
     <!-- Default Style for HotkeyCaptureBox -->
     <Style TargetType="{x:Type controls:HotkeyCaptureBox}">
-        <Setter Property="Background" Value="White"/>
-        <Setter Property="BorderBrush" Value="#CCCCCC"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="MinHeight" Value="28"/>
@@ -26,6 +27,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
@@ -48,8 +50,8 @@
                                        FontSize="13"/>
 
                             <!-- Clear Button (when has value) -->
-                            <Button x:Name="ClearButton"
-                                    Grid.Column="2"
+                            <Button x:Name="PART_ClearButton"
+                                    Grid.Column="3"
                                     Content="✕"
                                     FontSize="10"
                                     Background="Transparent"
@@ -57,7 +59,8 @@
                                     Padding="4,2"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Visibility="Collapsed"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Focusable="False"
                                     ToolTip="Clear hotkey"/>
 
                             <!-- Validation Indicator -->
@@ -80,7 +83,7 @@
 
                         <!-- Capturing state -->
                         <Trigger Property="IsCapturing" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#FFFEF0"/>
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource CardBrush}"/>
                             <Setter TargetName="DisplayTextBlock" Property="FontStyle" Value="Italic"/>
                             <Setter TargetName="KeyboardIcon" Property="Opacity" Value="1"/>
                         </Trigger>
@@ -112,13 +115,16 @@
                         </MultiTrigger>
 
                         <!-- Hover -->
+                        <Trigger Property="VirtualKeyCode" Value="0">
+                            <Setter TargetName="ValidationIndicator" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Border" Property="BorderBrush" Value="#0078D4"/>
                         </Trigger>
 
                         <!-- Disabled -->
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Border" Property="Background" Value="#F5F5F5"/>
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                             <Setter TargetName="Border" Property="Opacity" Value="0.6"/>
                         </Trigger>
                     </ControlTemplate.Triggers>

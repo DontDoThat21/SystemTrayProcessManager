@@ -70,6 +70,9 @@ namespace SystemTrayProcessManager.Core.Enums
         /// Shows a previously hidden process window.
         /// This action is reversible via <see cref="Hide"/>.
         /// </summary>
-        Show = 512
+        Show = 512,
+
+        /// <summary>Toggles whether the application window stays above other windows.</summary>
+        ToggleAlwaysOnTop = 1024
     }
 }

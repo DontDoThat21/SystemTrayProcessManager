@@ -81,7 +81,7 @@ namespace SystemTrayProcessManager.UI.Controls
                 nameof(PlaceholderText),
                 typeof(string),
                 typeof(HotkeyCaptureBox),
-                new PropertyMetadata("Press a key combination..."));
+                new PropertyMetadata("Press a key combination...", OnBindingPropertyChanged));
 
         /// <summary>
         /// Identifies the <see cref="RequireModifier"/> dependency property.
@@ -209,6 +209,7 @@ namespace SystemTrayProcessManager.UI.Controls
 
         private HotkeyModifier _currentModifiers;
         private bool _hasNonModifierKey;
+        private System.Windows.Controls.Button? _clearButton;
 
         #endregion
 
@@ -239,6 +240,21 @@ namespace SystemTrayProcessManager.UI.Controls
         #endregion
 
         #region Overrides
+
+        /// <inheritdoc/>
+        public override void OnApplyTemplate()
+        {
+            if (_clearButton != null) _clearButton.Click -= ClearButton_Click;
+            base.OnApplyTemplate();
+            _clearButton = GetTemplateChild("PART_ClearButton") as System.Windows.Controls.Button;
+            if (_clearButton != null) _clearButton.Click += ClearButton_Click;
+        }
+
+        private void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            Clear();
+            e.Handled = true;
+        }
 
         /// <inheritdoc/>
         protected override void OnGotFocus(RoutedEventArgs e)
@@ -290,8 +306,8 @@ namespace SystemTrayProcessManager.UI.Controls
             int vkCode = KeyInterop.VirtualKeyFromKey(key);
             if (vkCode > 0)
             {
-                VirtualKeyCode = vkCode;
-                Modifiers = _currentModifiers;
+                SetCurrentValue(VirtualKeyCodeProperty, vkCode);
+                SetCurrentValue(ModifiersProperty, _currentModifiers);
                 _hasNonModifierKey = true;
 
                 ValidateHotkey();
@@ -340,8 +356,8 @@ namespace SystemTrayProcessManager.UI.Controls
         /// </summary>
         public void Clear()
         {
-            VirtualKeyCode = 0;
-            Modifiers = HotkeyModifier.None;
+            SetCurrentValue(VirtualKeyCodeProperty, 0);
+            SetCurrentValue(ModifiersProperty, HotkeyModifier.None);
             _currentModifiers = HotkeyModifier.None;
             _hasNonModifierKey = false;
             IsValid = false;
@@ -357,8 +373,8 @@ namespace SystemTrayProcessManager.UI.Controls
         /// <param name="binding">The hotkey binding to set.</param>
         public void SetBinding(HotkeyBinding binding)
         {
-            VirtualKeyCode = binding.VirtualKeyCode;
-            Modifiers = binding.Modifiers;
+            SetCurrentValue(VirtualKeyCodeProperty, binding.VirtualKeyCode);
+            SetCurrentValue(ModifiersProperty, binding.Modifiers);
             _hasNonModifierKey = binding.VirtualKeyCode > 0;
             ValidateHotkey();
             UpdateDisplayText();

@@ -68,6 +68,23 @@ namespace SystemTrayProcessManager.UI
             }
         }
 
+        private async void ProcessHotkeys_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.FrameworkElement { DataContext: ProcessCardViewModel process }) return;
+            try
+            {
+                var window = ((App)Application.Current).Services.GetRequiredService<Views.ProcessHotkeysWindow>();
+                window.Owner = this;
+                await window.LoadAsync(process.Name);
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to configure shortcuts for {ProcessName}", process.Name);
+                MessageBox.Show("Unable to open application shortcuts. Please check the application log.", "Application Hotkeys");
+            }
+        }
+
         /// <summary>
         /// Handles window state changes to implement minimize-to-tray behavior.
         /// </summary>

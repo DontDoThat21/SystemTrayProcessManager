@@ -590,6 +590,8 @@ namespace SystemTrayProcessManager.UI
 
                             // Register ViewModels
                             services.AddTransient<HotkeyConfigViewModel>();
+                            services.AddTransient<ProcessHotkeysViewModel>();
+                            services.AddTransient<Views.ProcessHotkeysWindow>();
                             services.AddTransient<SettingsViewModel>();
                             services.AddSingleton<MainViewModel>();
 

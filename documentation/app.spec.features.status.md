@@ -8,13 +8,41 @@
 
 ## Corrective Task: User-configurable application mute shortcut
 
-**Status**: ⏳ In Progress — implementation and automated validation complete; manual verification pending
+**Status**: ⏳ In Progress — implementation, automated tests, rendered UI inspection, and live startup verified; physical audio/shortcut verification pending
 
 **Assigned**: 2026-10-01
 
 **Dependencies**: Tasks 5–8 (marked complete)
 
-**Blockers**: The user's running Debug app locks its build output. Release validation succeeds; live audio/keyboard and visual checks have not been performed.
+**Blockers**: None for implementation or automated checks. Physical audio/shortcut testing and extended memory/performance observation remain manual checks.
+
+### Follow-up: Editing reliability and per-application action shortcuts (2026-10-01)
+
+- Found the remaining runtime root cause by launching the app: `SetWindowsHookEx` used a nonexistent unsuffixed native export. Set the `LibraryImport` entry point to `SetWindowsHookExW`. A real Windows hook installation/disposal regression test failed before the fix and passes afterward.
+- **Save & Apply** now commits, persists, and applies an edit in one operation. **Save Changes** includes the current edit. Edit/delete buttons pass the exact row instead of relying on selection.
+- Added a **Hotkeys** button to every process card and a per-application editor with independently editable, enabled/disabled, removable shortcuts for all 11 offered actions. Saving preserves other applications' settings and checks conflicts.
+- Implemented the previously offered but unsupported `ToggleAlwaysOnTop` action.
+- Cards now occupy uniform 300×156 layout slots (292×148 card surfaces plus margins), with always-visible actions and ellipsis for long names/titles.
+- Capture updates use `SetCurrentValue`, the clear button is wired, empty fields no longer show an error indicator, and capture styling follows the dark theme. The control test did not reproduce binding loss with the original two-way binding, so that was not the confirmed runtime cause.
+- Added WPF control/template tests and rendered dashboard, global editor, and per-app editor images for visual inspection. The real capture control's binding-to-save flow is covered.
+- Full Debug suite: **1,287 passed**, zero failures, no build warnings. Verified the new app launches, installs the native hook, and loads all five current mappings. Latest startup completed in 1,499 ms without initialization errors. Physical audio output has not been manually exercised.
+
+**Additional Files Created**:
+- `src/SystemTrayProcessManager.UI/ViewModels/ProcessHotkeysViewModel.cs`
+- `src/SystemTrayProcessManager.UI/Views/ProcessHotkeysWindow.xaml` and `.xaml.cs`
+- `tests/SystemTrayProcessManager.Tests/UI/ProcessHotkeysViewModelTests.cs`
+- `tests/SystemTrayProcessManager.Tests/UI/HotkeyCaptureBoxTests.cs`
+- `tests/SystemTrayProcessManager.Tests/UI/HotkeyWindowLayoutTests.cs`
+- `tests/SystemTrayProcessManager.Tests/UI/WpfTestCollection.cs`
+
+**Additional Files Modified**:
+- `src/SystemTrayProcessManager.Core/Enums/ProcessActionType.cs`
+- `src/SystemTrayProcessManager.Infrastructure/WindowsAPI/NativeMethods.cs`
+- `src/SystemTrayProcessManager.UI/Controls/HotkeyCaptureBox.cs`
+- `src/SystemTrayProcessManager.UI/Resources/Styles/ProcessCardStyle.xaml`
+- `src/SystemTrayProcessManager.UI/Resources/Styles/HotkeyCaptureBoxStyle.xaml`
+- `tests/SystemTrayProcessManager.Tests/Infrastructure/HotkeyManagerServiceTests.cs`
+- Existing corrective-task files listed below.
 
 **Design / Implementation Notes**:
 - Reuse `IAudioService`, `IHotkeyConfigurationService`, and `IActionMappingService`; no new P/Invoke or DI registrations required.
@@ -22,13 +50,14 @@
 - Derive action mode from the target field and honor targets saved by older editor versions. Prefer exact process names, accept `.exe`, and locate audio apps without visible windows.
 - Keep registered mappings separate from mutable editor items. Track enable checkbox changes and await save before closing.
 - Install the hook on the WPF dispatcher thread and suppress repeated actions while a key is held. Suspend actions during shortcut capture and restore the prior suspension state.
-- Expose **Configure Hotkeys** in the dashboard and explain the **ToggleMute**, target, capture, Save, and Save Changes workflow.
+- Expose **Configure Hotkeys** in the dashboard and explain the **ToggleMute**, target, capture, and Save & Apply workflow.
 
 **Validation**:
 - [x] Release test suite: 1,277 passed, including 16 new regression cases.
 - [x] Release build succeeds without compiler warnings; diff whitespace check passes.
 - [x] Verify selected target routing, mute/unmute callback dispatch, edited/disabled registrations, `.exe` names, background audio apps, save failures, conflicts, and held keys.
-- [ ] Manual launch, visual inspection, real audio playback/shortcut testing, log review, and memory/performance observation.
+- [x] Launch updated app, inspect rendered UI, and verify hook/mapping startup in logs.
+- [ ] Real audio playback/physical shortcut testing and extended memory/performance observation.
 
 **Files Modified**:
 - `src/SystemTrayProcessManager.Infrastructure/Services/ActionMappingService.cs`

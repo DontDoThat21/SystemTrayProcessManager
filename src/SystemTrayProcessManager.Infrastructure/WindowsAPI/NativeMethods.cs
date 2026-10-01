@@ -265,7 +265,7 @@ namespace SystemTrayProcessManager.Infrastructure.WindowsAPI
                         /// <param name="hMod">A handle to the DLL containing the hook procedure (IntPtr.Zero for managed code with WH_KEYBOARD_LL).</param>
                         /// <param name="dwThreadId">The identifier of the thread with which the hook procedure is to be associated.</param>
                         /// <returns>Handle to the hook procedure, or IntPtr.Zero if the function fails.</returns>
-                        [LibraryImport("user32.dll", SetLastError = true)]
+                        [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExW", SetLastError = true)]
                         public static partial IntPtr SetWindowsHookEx(int idHook, IntPtr lpfn, IntPtr hMod, uint dwThreadId);
 
                         /// <summary>

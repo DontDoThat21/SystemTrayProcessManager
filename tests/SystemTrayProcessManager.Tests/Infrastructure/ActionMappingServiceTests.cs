@@ -435,6 +435,24 @@ namespace SystemTrayProcessManager.Tests.Infrastructure
         #region ExecutePinnedActionAsync Tests
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ToggleAlwaysOnTop_UsesOppositeWindowState(bool currentState)
+        {
+            var hwnd = new IntPtr(123);
+            _processServiceMock.Setup(p => p.GetRunningProcessesAsync()).ReturnsAsync(new[]
+            {
+                new ProcessInfo { ProcessId = 123, Name = "TestApp", WindowHandle = hwnd }
+            });
+            _windowServiceMock.Setup(w => w.IsValidWindow(hwnd)).Returns(true);
+            _windowServiceMock.Setup(w => w.IsAlwaysOnTopAsync(hwnd)).ReturnsAsync(currentState);
+            _windowServiceMock.Setup(w => w.SetAlwaysOnTopAsync(hwnd, !currentState)).ReturnsAsync(true);
+            var result = await _service.ExecutePinnedActionAsync(ProcessActionType.ToggleAlwaysOnTop, "TestApp");
+            Assert.True(result.Success);
+            _windowServiceMock.Verify(w => w.SetAlwaysOnTopAsync(hwnd, !currentState), Times.Once);
+        }
+
+        [Theory]
         [InlineData("TestApp")]
         [InlineData(" testapp.EXE ")]
         public async Task PinnedToggle_PrefersExactNameOverPartialMatch(string target)

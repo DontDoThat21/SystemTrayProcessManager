@@ -553,6 +553,14 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                         }
                         break;
 
+                    case ProcessActionType.ToggleAlwaysOnTop:
+                        if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
+                        {
+                            bool isOnTop = await _windowService.IsAlwaysOnTopAsync(windowHandle);
+                            success = await _windowService.SetAlwaysOnTopAsync(windowHandle, !isOnTop);
+                        }
+                        break;
+
                     default:
                         _logger.LogWarning("Unsupported action type: {ActionType}", actionType);
                         break;

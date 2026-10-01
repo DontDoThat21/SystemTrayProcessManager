@@ -1,0 +1,67 @@
+<Window x:Class="SystemTrayProcessManager.UI.Views.ProcessHotkeysWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SystemTrayProcessManager.UI.Controls"
+        Title="Application Hotkeys" Width="700" Height="690" MinWidth="610" MinHeight="450"
+        WindowStartupLocation="CenterOwner" Style="{DynamicResource DarkWindowStyle}">
+    <Grid Margin="24" Background="{DynamicResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,18">
+            <TextBlock Text="{Binding ProcessName, StringFormat='Hotkeys for {0}'}" FontSize="22" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="Assign a separate shortcut to each action. These shortcuts always target this application."
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="12,0,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="45"/><ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/><ColumnDefinition Width="64"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="On" Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock Grid.Column="1" Text="Action" Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock Grid.Column="2" Text="Shortcut" Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </Grid>
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBrush}" CornerRadius="5" Margin="0,0,0,6" Padding="12,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="45"/><ColumnDefinition Width="170"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="64"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Enable this action's shortcut"/>
+                                <TextBlock Grid.Column="1" Text="{Binding ActionType}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <controls:HotkeyCaptureBox Grid.Column="2" Height="32" Margin="0,0,10,0"
+                                    VirtualKeyCode="{Binding VirtualKeyCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Modifiers="{Binding Modifiers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    GotKeyboardFocus="Capture_GotKeyboardFocus" LostKeyboardFocus="Capture_LostKeyboardFocus"
+                                    PlaceholderText="Click and press keys"/>
+                                <Button Grid.Column="3" Content="Clear" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Command="{Binding DataContext.ClearCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}" Padding="8,4"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,14,0,14"
+                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Close" Click="Close_Click" Style="{DynamicResource SecondaryButtonStyle}" Padding="18,8" Margin="0,0,10,0"/>
+            <Button Content="Save &amp; Apply" Command="{Binding SaveCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="18,8"/>
+        </StackPanel>
+        <Border Grid.RowSpan="5" Background="#AA1E1E1E" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisConverter}}">
+            <TextBlock Text="Applying shortcuts…" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </Border>
+    </Grid>
+</Window>

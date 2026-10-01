@@ -59,7 +59,7 @@ namespace SystemTrayProcessManager.UI.Views
                 return;
             }
 
-            if (_viewModel.HasUnsavedChanges)
+            if (_viewModel.HasUnsavedChanges || _viewModel.IsEditing)
             {
                 var result = MessageBox.Show(
                     "You have unsaved changes. Do you want to save before closing?",
@@ -72,7 +72,7 @@ namespace SystemTrayProcessManager.UI.Views
                     case MessageBoxResult.Yes:
                         e.Cancel = true;
                         await _viewModel.SaveAllChangesCommand.ExecuteAsync(null);
-                        if (!_viewModel.HasUnsavedChanges)
+                        if (!_viewModel.HasUnsavedChanges && !_viewModel.IsEditing)
                         {
                             // Close after the original Closing event has finished.
                             _ = Dispatcher.BeginInvoke(new Action(Close));

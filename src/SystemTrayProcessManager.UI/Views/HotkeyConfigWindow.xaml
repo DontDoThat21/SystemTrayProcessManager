@@ -58,7 +58,7 @@
                        FontSize="20" 
                        FontWeight="Bold"
                        Foreground="{DynamicResource PrimaryBrush}"/>
-            <TextBlock Text="Choose ToggleMute to mute/unmute an app with the same shortcut. Save the entry, then Save Changes to apply."
+            <TextBlock Text="Choose an action and target application, record a shortcut, then Save &amp; Apply. Changes take effect immediately."
                        TextWrapping="Wrap"
                        FontSize="12"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -175,12 +175,14 @@
                                     <Button Content="✏️" 
                                             ToolTip="Edit"
                                             Command="{Binding DataContext.EditHotkeyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
                                             Style="{DynamicResource IconButtonStyle}"
                                             Width="28" Height="28"
                                             FontSize="13"/>
                                     <Button Content="🗑️" 
                                             ToolTip="Delete"
                                             Command="{Binding DataContext.DeleteHotkeyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
                                             Style="{DynamicResource IconButtonStyle}"
                                             Width="28" Height="28"
                                             FontSize="13"/>
@@ -292,7 +294,7 @@
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="12,6"
                                 Margin="5,0"/>
-                        <Button Content="Save"
+                        <Button Content="Save &amp; Apply"
                                 Command="{Binding SaveEditCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="12,6"
