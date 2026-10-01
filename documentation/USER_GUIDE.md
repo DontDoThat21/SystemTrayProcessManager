@@ -185,7 +185,7 @@ Access via:
 
 For application-specific shortcuts, click **Hotkeys** on that application's process card. Each action has its own row: **ToggleMute**, **Mute**, **Unmute**, **Minimize**, **Maximize**, **Restore**, **Close**, **BringToFront**, **Hide**, **Show**, and **ToggleAlwaysOnTop**.
 
-Click a shortcut field and press your key combination, then click **Save & Apply**. You can assign several different actions at once. Use the checkbox to disable a shortcut or **Clear** to remove it. Saving updates the running hotkeys immediately and retains other applications' shortcuts. Conflicting combinations are reported before saving. Settings are associated with the application's executable name so they survive restarts.
+Click a shortcut field and press a key (such as **Num9** or **F8**) or a key combination (such as **Ctrl+Alt+M**), then click **Save & Apply**. You can assign several different actions at once. Use the checkbox to disable a shortcut or **Clear** to remove it. Saving updates the running hotkeys immediately and retains other applications' shortcuts. Conflicting combinations are reported before saving. Settings are associated with the application's executable name so they survive restarts.
 
 The main **Configure Hotkeys** window also supports focused-window shortcuts and advanced editing:
 

@@ -91,7 +91,7 @@ namespace SystemTrayProcessManager.UI.Controls
                 nameof(RequireModifier),
                 typeof(bool),
                 typeof(HotkeyCaptureBox),
-                new PropertyMetadata(true));
+                new PropertyMetadata(false));
 
         /// <summary>
         /// Identifies the <see cref="CapturingBackground"/> dependency property.
@@ -257,16 +257,16 @@ namespace SystemTrayProcessManager.UI.Controls
         }
 
         /// <inheritdoc/>
-        protected override void OnGotFocus(RoutedEventArgs e)
+        protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
         {
-            base.OnGotFocus(e);
+            base.OnGotKeyboardFocus(e);
             StartCapturing();
         }
 
         /// <inheritdoc/>
-        protected override void OnLostFocus(RoutedEventArgs e)
+        protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
         {
-            base.OnLostFocus(e);
+            base.OnLostKeyboardFocus(e);
             StopCapturing();
         }
 
@@ -341,9 +341,10 @@ namespace SystemTrayProcessManager.UI.Controls
         {
             base.OnMouseDown(e);
 
-            if (!IsFocused)
+            if (e.ChangedButton == MouseButton.Left)
             {
-                Focus();
+                // Prevent the containing ScrollViewer from taking focus as the click bubbles.
+                e.Handled = Focus();
             }
         }
 

@@ -59,7 +59,7 @@ public partial class ProcessHotkeysViewModel : ObservableObject
             }
             _loaded = true;
             HasUnsavedChanges = false;
-            StatusMessage = "Click a shortcut field and press your keys. Empty fields have no shortcut.";
+            StatusMessage = "Click a shortcut field, press a key or combination, then Save & Apply. Empty fields have no shortcut.";
         }
         catch (Exception ex)
         {
@@ -83,11 +83,6 @@ public partial class ProcessHotkeysViewModel : ObservableObject
                 .Select(item => item.Clone()).ToList();
             foreach (var row in Rows.Where(row => row.VirtualKeyCode != 0))
             {
-                if (row.Modifiers == HotkeyModifier.None)
-                {
-                    StatusMessage = $"{row.ActionType}: include Ctrl, Alt, Shift, or Win in the shortcut.";
-                    return;
-                }
                 var conflict = items.FirstOrDefault(item => item.IsEnabled && row.IsEnabled &&
                     item.ToHotkeyBinding().Equals(row.ToHotkeyBinding()));
                 if (conflict != null)

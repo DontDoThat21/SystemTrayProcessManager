@@ -59,14 +59,53 @@ public class HotkeyWindowLayoutTests
                 saved.Items.Single().VirtualKeyCode == 0x4D && saved.Items.Single().TargetProcessName == "Spotify")), Times.Once);
             globalWindow.Close();
 
+            var savedApplication = new HotkeyConfiguration();
+            config.Setup(c => c.LoadConfigurationAsync()).ReturnsAsync(() => savedApplication);
+            config.Setup(c => c.SaveConfigurationAsync(It.IsAny<HotkeyConfiguration>()))
+                .Callback<HotkeyConfiguration>(saved => savedApplication = saved).ReturnsAsync(true);
             var editor = new ProcessHotkeysViewModel(config.Object, Mock.Of<IActionMappingService>(), NullLogger<ProcessHotkeysViewModel>.Instance);
             editor.LoadAsync("Spotify").GetAwaiter().GetResult();
             editor.Rows[0].VirtualKeyCode = 0x4D;
             editor.Rows[0].Modifiers = HotkeyModifier.Ctrl | HotkeyModifier.Alt;
-            var editorWindow = new ProcessHotkeysWindow(editor, Mock.Of<IHotkeyService>());
+            var hotkeys = new Mock<IHotkeyService>();
+            var editorWindow = new ProcessHotkeysWindow(editor, hotkeys.Object);
             var editorContent = Render(editorWindow, 700, 650, "application-hotkeys");
             Assert.Equal(editor.Rows.Count, Descendants(editorContent).OfType<HotkeyCaptureBox>().Count());
             Assert.All(Descendants(editorContent).OfType<HotkeyCaptureBox>(), c => Assert.True(c.ActualWidth >= 180));
+            // Exercise focus and routed keyboard input instead of assigning the control's value.
+            editorWindow.Show();
+            editorWindow.Activate();
+            editorWindow.UpdateLayout();
+            var applicationCapture = Descendants(editorContent).OfType<HotkeyCaptureBox>().First();
+            var display = Descendants(applicationCapture).OfType<System.Windows.Controls.TextBlock>()
+                .Single(t => t.Name == "DisplayTextBlock");
+            display.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(
+                System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+                { RoutedEvent = System.Windows.Input.Mouse.MouseDownEvent });
+            Assert.True(applicationCapture.IsKeyboardFocused, $"Focusable={applicationCapture.Focusable}, enabled={applicationCapture.IsEnabled}, visible={applicationCapture.IsVisible}, active={editorWindow.IsActive}, logicalFocus={applicationCapture.IsFocused}, focusedElement={System.Windows.Input.Keyboard.FocusedElement}");
+            Assert.True(applicationCapture.IsCapturing);
+            hotkeys.Verify(h => h.Suspend(), Times.Once);
+            applicationCapture.RaiseEvent(new System.Windows.Input.KeyEventArgs(
+                System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(applicationCapture),
+                Environment.TickCount, System.Windows.Input.Key.NumPad9)
+                { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
+            Assert.Equal(0x69, editor.Rows[0].VirtualKeyCode);
+            Assert.Equal(HotkeyModifier.None, editor.Rows[0].Modifiers);
+            Assert.True(applicationCapture.IsValid);
+            Assert.True(editor.SaveCommand.CanExecute(null));
+            editor.SaveCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            config.Verify(c => c.SaveConfigurationAsync(It.Is<HotkeyConfiguration>(saved =>
+                saved.Items.Single().VirtualKeyCode == 0x69)), Times.Once);
+            Assert.False(editor.HasUnsavedChanges);
+            var reopened = new ProcessHotkeysViewModel(config.Object, Mock.Of<IActionMappingService>(), NullLogger<ProcessHotkeysViewModel>.Instance);
+            reopened.LoadAsync("Spotify").GetAwaiter().GetResult();
+            Assert.Equal(0x69, reopened.Rows[0].VirtualKeyCode);
+            Assert.Equal(HotkeyModifier.None, reopened.Rows[0].Modifiers);
+            Assert.Equal("Spotify", reopened.Rows[0].TargetProcessName);
+            var closeButton = Descendants(editorContent).OfType<System.Windows.Controls.Button>().Single(b => Equals(b.Content, "Close"));
+            closeButton.Focus();
+            Assert.False(applicationCapture.IsCapturing);
+            hotkeys.Verify(h => h.Resume(), Times.AtLeastOnce);
             editor.HasUnsavedChanges = false;
             editorWindow.Close();
             dashboard.Close();

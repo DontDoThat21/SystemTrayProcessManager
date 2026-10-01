@@ -16,6 +16,17 @@
 
 **Blockers**: None for implementation or automated checks. Physical audio/shortcut testing and extended memory/performance observation remain manual checks.
 
+### Follow-up: Application Hotkeys keyboard capture (2026-10-01)
+
+**Status**: ✅ Complete — focus/input regression, save/reload, full test suite, and build verified.
+
+- Reproduced the actual click failure in a shown Application Hotkeys window: the unhandled mouse event bubbled to its ScrollViewer, which stole keyboard focus from the capture control. The previous tests assigned values programmatically and missed this interaction.
+- HotkeyCaptureBox now handles a successful left-click focus request and tracks keyboard focus for recording. This keeps the scrolling list from taking focus and suspends application shortcuts while recording.
+- Removed the application editor's modifier-only restriction and made modifiers optional in the shared capture control. Single keys such as Num9/F8 can be recorded and saved, while existing duplicate-shortcut checks remain in place.
+- Extended the actual-window regression to click the rendered field text, route Num9 keyboard input, check capture/binding/save state, save/reload the application mapping, and verify hotkey suspension/resumption. The test failed on focus before the fix and passes afterward.
+- Validation: **1,298 Release tests passed**; Debug build succeeded with **0 warnings and 0 errors**. Tests use WPF routed input; physical game input is outside this capture regression.
+- Files modified: `HotkeyCaptureBox.cs`, `ProcessHotkeysViewModel.cs`, `HotkeyWindowLayoutTests.cs`, `documentation/USER_GUIDE.md`, and this status document.
+
 ### Follow-up: Fullscreen game audio discovery (2026-10-01)
 
 **Validation status**: Implementation and native Windows audio regression verified; original game recheck pending because the game exited during investigation.
