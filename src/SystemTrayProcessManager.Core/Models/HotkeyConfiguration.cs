@@ -28,6 +28,13 @@ namespace SystemTrayProcessManager.Core.Models
         /// </summary>
         public List<HotkeyConfigItem> Items { get; set; } = [];
 
+        /// <summary>Applications ever assigned a shortcut, retained even after shortcuts are removed.</summary>
+        public Dictionary<string, string?> Applications { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Normalizes an executable path or process name for application matching.</summary>
+        public static string ApplicationName(string name) => System.IO.Path.GetFileNameWithoutExtension(
+            name.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name.Trim() : name.Trim() + ".exe");
+
         /// <summary>
         /// Initializes a new instance of the <see cref="HotkeyConfiguration"/> class.
         /// </summary>
@@ -165,7 +172,8 @@ namespace SystemTrayProcessManager.Core.Models
             {
                 Version = Version,
                 LastModified = LastModified,
-                Items = Items.Select(i => i.Clone()).ToList()
+                Items = Items.Select(i => i.Clone()).ToList(),
+                Applications = new(Applications, StringComparer.OrdinalIgnoreCase)
             };
         }
 

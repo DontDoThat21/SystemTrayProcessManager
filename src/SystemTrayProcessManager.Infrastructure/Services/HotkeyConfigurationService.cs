@@ -54,12 +54,14 @@ namespace SystemTrayProcessManager.Infrastructure.Services
         /// <param name="logger">The logger instance.</param>
         /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
         public HotkeyConfigurationService(ILogger<HotkeyConfigurationService> logger)
+            : this(logger, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SystemTrayProcessManager"))
+        {
+        }
+
+        internal HotkeyConfigurationService(ILogger<HotkeyConfigurationService> logger, string configDirectory)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _configDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "SystemTrayProcessManager");
+            _configDirectory = configDirectory ?? throw new ArgumentNullException(nameof(configDirectory));
 
             _configFilePath = Path.Combine(_configDirectory, "hotkeys.json");
             _backupFilePath = Path.Combine(_configDirectory, "hotkeys.backup.json");
@@ -123,6 +125,41 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             }
         }
 
+        private async Task RememberApplicationsAsync(HotkeyConfiguration configuration)
+        {
+            // Merge the durable application catalogue before editors replace the hotkey list.
+            var previous = await LoadConfigurationAsync().ConfigureAwait(false);
+            var applications = new Dictionary<string, string?>(previous.Applications, StringComparer.OrdinalIgnoreCase);
+            foreach (var app in configuration.Applications) applications[app.Key] = app.Value;
+            foreach (var item in previous.Items.Concat(configuration.Items))
+            {
+                if (string.IsNullOrWhiteSpace(item.TargetProcessName)) continue;
+                var name = HotkeyConfiguration.ApplicationName(item.TargetProcessName);
+                applications.TryAdd(name, null);
+                if (string.IsNullOrWhiteSpace(applications[name]) && Path.IsPathFullyQualified(item.TargetProcessName))
+                    applications[name] = item.TargetProcessName;
+            }
+            foreach (var name in applications.Keys.ToList())
+            {
+                if (!string.IsNullOrWhiteSpace(applications[name])) continue;
+                var processes = System.Diagnostics.Process.GetProcessesByName(name);
+                try
+                {
+                    foreach (var process in processes)
+                    {
+                        try
+                        {
+                            var path = process.MainModule?.FileName;
+                            if (!string.IsNullOrWhiteSpace(path)) { applications[name] = path; break; }
+                        }
+                        catch (Exception ex) { _logger.LogDebug(ex, "Cannot read executable for {Name}", name); }
+                    }
+                }
+                finally { foreach (var process in processes) process.Dispose(); }
+            }
+            configuration.Applications = applications;
+        }
+
         /// <inheritdoc/>
         public async Task<bool> SaveConfigurationAsync(HotkeyConfiguration configuration)
         {
@@ -131,6 +168,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             try
             {
                 _logger.LogDebug("Saving hotkey configuration to {Path}", _configFilePath);
+
+                await RememberApplicationsAsync(configuration).ConfigureAwait(false);
 
                 // Ensure directory exists
                 Directory.CreateDirectory(_configDirectory);
@@ -242,6 +281,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             try
             {
                 _logger.LogDebug("Exporting hotkey configuration to {Path}", filePath);
+
+                await RememberApplicationsAsync(configuration).ConfigureAwait(false);
 
                 // Ensure directory exists
                 var directory = Path.GetDirectoryName(filePath);

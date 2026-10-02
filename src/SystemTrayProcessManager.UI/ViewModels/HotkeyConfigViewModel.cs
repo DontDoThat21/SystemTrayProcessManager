@@ -177,6 +177,8 @@ namespace SystemTrayProcessManager.UI.ViewModels
             "Maximize",
             "Restore",
             "Close",
+            "Open",
+            "ToggleOpenClose",
             "BringToFront",
             "SetFocus",
             "Hide",
@@ -368,6 +370,12 @@ namespace SystemTrayProcessManager.UI.ViewModels
         private bool CommitEdit()
         {
             if (EditingItem == null) return false;
+
+            if ((EditingItem.ActionType is "Open" or "ToggleOpenClose") && string.IsNullOrWhiteSpace(EditingItem.TargetProcessName))
+            {
+                StatusMessage = "Enter a target application for Open or Open/Close.";
+                return false;
+            }
 
             if (!ValidateEdit())
             {

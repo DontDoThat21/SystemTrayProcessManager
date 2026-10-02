@@ -128,8 +128,7 @@ public partial class ProcessHotkeysViewModel : ObservableObject
         string.Equals(NormalizeName(item.TargetProcessName), ProcessName, StringComparison.OrdinalIgnoreCase);
     private static string NormalizeName(string? name)
     {
-        var result = name?.Trim() ?? string.Empty;
-        return result.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? result[..^4] : result;
+        return string.IsNullOrWhiteSpace(name) ? string.Empty : HotkeyConfiguration.ApplicationName(name);
     }
     private void OnRowChanged(object? sender, PropertyChangedEventArgs e) => HasUnsavedChanges = true;
     partial void OnIsBusyChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();

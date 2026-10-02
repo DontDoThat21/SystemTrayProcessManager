@@ -38,7 +38,7 @@
                                     <ColumnDefinition Width="*"/><ColumnDefinition Width="64"/>
                                 </Grid.ColumnDefinitions>
                                 <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Enable this action's shortcut"/>
-                                <TextBlock Grid.Column="1" Text="{Binding ActionType}" VerticalAlignment="Center"
+                                <TextBlock Grid.Column="1" Text="{Binding ActionDisplayName}" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <controls:HotkeyCaptureBox Grid.Column="2" Height="32" Margin="0,0,10,0"
                                     VirtualKeyCode="{Binding VirtualKeyCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

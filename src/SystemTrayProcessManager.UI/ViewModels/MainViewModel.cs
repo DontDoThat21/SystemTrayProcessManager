@@ -20,6 +20,11 @@ namespace SystemTrayProcessManager.UI.ViewModels
         private readonly ILogger<MainViewModel> _logger;
         private readonly List<ProcessCardViewModel> _allProcessCards = new();
         private bool _disposed;
+        private readonly IHotkeyConfigurationService? _hotkeyConfiguration;
+        private Dictionary<string, string?> _applications = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Selects an executable when a legacy shortcut has no saved launch path.</summary>
+        public Func<string?>? SelectExecutablePath { get; set; }
 
         /// <summary>
         /// Gets the filtered collection of process cards displayed in the dashboard.
@@ -60,18 +65,22 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <param name="audioService">Audio control service.</param>
         /// <param name="notificationService">In-app notification service.</param>
         /// <param name="logger">Logger instance.</param>
+        /// <param name="hotkeyConfiguration">Saved application and hotkey configuration.</param>
         public MainViewModel(
             IProcessService processService,
             IWindowService windowService,
             IAudioService audioService,
             INotificationService notificationService,
-            ILogger<MainViewModel> logger)
+            ILogger<MainViewModel> logger,
+            IHotkeyConfigurationService? hotkeyConfiguration = null)
         {
             _processService = processService ?? throw new ArgumentNullException(nameof(processService));
             _windowService = windowService ?? throw new ArgumentNullException(nameof(windowService));
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _hotkeyConfiguration = hotkeyConfiguration;
 
             // Subscribe to process events
             _processService.ProcessStarted += OnProcessStarted;
@@ -99,6 +108,29 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
                 var processes = await _processService.GetRunningProcessesAsync();
                 var processList = processes.ToList();
+                if (_hotkeyConfiguration != null)
+                {
+                    var configuration = await _hotkeyConfiguration.LoadConfigurationAsync();
+                    _applications = new(configuration.Applications, StringComparer.OrdinalIgnoreCase);
+                    bool changed = false;
+                    foreach (var item in configuration.Items.Where(i => !string.IsNullOrWhiteSpace(i.TargetProcessName)))
+                        changed |= _applications.TryAdd(HotkeyConfiguration.ApplicationName(item.TargetProcessName!),
+                            System.IO.Path.IsPathFullyQualified(item.TargetProcessName!) ? item.TargetProcessName : null);
+                    foreach (var process in processList)
+                    {
+                        if (_applications.ContainsKey(process.Name) && !string.IsNullOrWhiteSpace(process.ExecutablePath)
+                            && _applications[process.Name] != process.ExecutablePath)
+                        {
+                            _applications[process.Name] = process.ExecutablePath;
+                            changed = true;
+                        }
+                    }
+                    if (changed)
+                    {
+                        configuration.Applications = _applications;
+                        await _hotkeyConfiguration.SaveConfigurationAsync(configuration);
+                    }
+                }
 
                 _allProcessCards.Clear();
 
@@ -108,11 +140,12 @@ namespace SystemTrayProcessManager.UI.ViewModels
                         process,
                         _windowService,
                         _audioService,
-                        _logger);
+                        _logger, LaunchApplicationAsync);
 
                     _allProcessCards.Add(card);
                 }
 
+                AddSavedApplications();
                 TotalProcessCount = _allProcessCards.Count;
                 ApplyFilter();
 
@@ -130,6 +163,56 @@ namespace SystemTrayProcessManager.UI.ViewModels
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        private void AddSavedApplications()
+        {
+            foreach (var app in _applications)
+            {
+                if (_allProcessCards.Any(c => c.Name.Equals(app.Key, StringComparison.OrdinalIgnoreCase))) continue;
+                _allProcessCards.Add(new ProcessCardViewModel(new ProcessInfo
+                {
+                    Name = app.Key, ExecutablePath = app.Value
+                }, _windowService, _audioService, _logger, LaunchApplicationAsync));
+            }
+        }
+
+        private async Task<bool> LaunchApplicationAsync(string name)
+        {
+            try
+            {
+                _applications.TryGetValue(name, out var path);
+                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
+                {
+                    path = SelectExecutablePath?.Invoke();
+                    if (string.IsNullOrWhiteSpace(path)) return false;
+                    if (!HotkeyConfiguration.ApplicationName(path).Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        StatusText = $"Select {name}.exe to launch this application.";
+                        return false;
+                    }
+                    if (_hotkeyConfiguration != null)
+                    {
+                        var configuration = await _hotkeyConfiguration.LoadConfigurationAsync();
+                        configuration.Applications[name] = path;
+                        if (!await _hotkeyConfiguration.SaveConfigurationAsync(configuration))
+                        {
+                            StatusText = "Unable to save executable path.";
+                            return false;
+                        }
+                    }
+                    _applications[name] = path;
+                }
+                var launched = await _processService.LaunchAsync(path);
+                StatusText = launched ? $"Launched {name}" : $"Unable to launch {name}. Check its executable path and permissions.";
+                return launched;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to launch {Name}", name);
+                StatusText = $"Unable to launch {name}.";
+                return false;
             }
         }
 
@@ -218,7 +301,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         {
             try
             {
-                foreach (var card in _allProcessCards)
+                foreach (var card in _allProcessCards.ToList())
                 {
                     await card.RefreshAudioStateAsync();
                 }
@@ -237,20 +320,22 @@ namespace SystemTrayProcessManager.UI.ViewModels
             try
             {
                 var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                if (dispatcher == null) return;
-
-                dispatcher.Invoke(() =>
+                void UpdateCards()
                 {
                     var card = new ProcessCardViewModel(
                         process,
                         _windowService,
                         _audioService,
-                        _logger);
+                        _logger, LaunchApplicationAsync);
 
-                    _allProcessCards.Add(card);
+                    _allProcessCards.RemoveAll(c => !c.IsRunning && c.Name.Equals(process.Name, StringComparison.OrdinalIgnoreCase));
+                    if (!_allProcessCards.Any(c => c.ProcessId == process.ProcessId && c.WindowHandle == process.WindowHandle))
+                        _allProcessCards.Add(card);
                     TotalProcessCount = _allProcessCards.Count;
                     ApplyFilter();
-                });
+                }
+                if (dispatcher != null && !dispatcher.CheckAccess()) dispatcher.Invoke(UpdateCards);
+                else UpdateCards();
 
                 _notificationService.AddNotification(
                     AppNotification.Info("Process Started", $"{process.Name} (PID: {process.ProcessId})"));
@@ -271,18 +356,19 @@ namespace SystemTrayProcessManager.UI.ViewModels
             try
             {
                 var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                if (dispatcher == null) return;
-
-                dispatcher.Invoke(() =>
+                void UpdateCards()
                 {
                     var card = _allProcessCards.FirstOrDefault(c => c.ProcessId == e.ProcessId);
                     if (card != null)
                     {
                         _allProcessCards.Remove(card);
+                        AddSavedApplications();
                         TotalProcessCount = _allProcessCards.Count;
                         ApplyFilter();
                     }
-                });
+                }
+                if (dispatcher != null && !dispatcher.CheckAccess()) dispatcher.Invoke(UpdateCards);
+                else UpdateCards();
 
                 _notificationService.AddNotification(
                     AppNotification.Info("Process Stopped", $"{e.ProcessName ?? "Unknown"} (PID: {e.ProcessId})"));

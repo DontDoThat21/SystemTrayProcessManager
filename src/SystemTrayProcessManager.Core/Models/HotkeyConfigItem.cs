@@ -103,10 +103,15 @@ namespace SystemTrayProcessManager.Core.Models
             {
                 if (SetProperty(ref _actionType, value ?? string.Empty))
                 {
+                    OnPropertyChanged(nameof(ActionDisplayName));
                     OnPropertyChanged(nameof(IsValid));
                 }
             }
         }
+
+        /// <summary>Gets a readable label for the configured action.</summary>
+        [JsonIgnore]
+        public string ActionDisplayName => ActionType == "ToggleOpenClose" ? "Open / Close" : ActionType;
 
         /// <summary>
         /// Gets or sets the target process name for process-specific actions.

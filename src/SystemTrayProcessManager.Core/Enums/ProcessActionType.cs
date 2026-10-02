@@ -79,6 +79,12 @@ namespace SystemTrayProcessManager.Core.Enums
         PreviousTrack = 2048,
 
         /// <summary>Sends the next media track command to the application window.</summary>
-        NextTrack = 4096
+        NextTrack = 4096,
+
+        /// <summary>Opens a saved application, or focuses its existing window.</summary>
+        Open = 8192,
+
+        /// <summary>Closes a running application gracefully, or opens it when stopped.</summary>
+        ToggleOpenClose = 16384
     }
 }

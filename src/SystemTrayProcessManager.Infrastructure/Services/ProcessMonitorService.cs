@@ -15,6 +15,30 @@ namespace SystemTrayProcessManager.Infrastructure.Services
     /// </summary>
     public sealed class ProcessMonitorService : IProcessService
     {
+        /// <inheritdoc/>
+        public Task<bool> LaunchAsync(string executablePath) => Task.Run(() =>
+        {
+            try
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (string.IsNullOrWhiteSpace(executablePath) || !System.IO.Path.IsPathFullyQualified(executablePath)
+                    || !executablePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(executablePath))
+                    return false;
+                using var process = Process.Start(new ProcessStartInfo(executablePath)
+                {
+                    UseShellExecute = false,
+                    WorkingDirectory = System.IO.Path.GetDirectoryName(executablePath)!
+                });
+                _logger.LogInformation("Launched application {Path}", executablePath);
+                return process != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to launch {Path}", executablePath);
+                return false;
+            }
+        });
+
         private readonly ILogger<ProcessMonitorService> _logger;
         private readonly IIconExtractor _iconExtractor;
         private readonly ConcurrentDictionary<IntPtr, ProcessInfo> _trackedProcesses;

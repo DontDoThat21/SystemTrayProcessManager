@@ -16,6 +16,25 @@ namespace SystemTrayProcessManager.UI.ViewModels
         private readonly IWindowService _windowService;
         private readonly IAudioService _audioService;
         private readonly ILogger _logger;
+        private readonly Func<string, Task<bool>>? _launch;
+
+        /// <summary>Whether this card represents a running process.</summary>
+        public bool IsRunning => ProcessId > 0;
+
+        /// <summary>Status shown in the workspace.</summary>
+        public string RunningStatus => IsRunning ? $"PID: {ProcessId}" : "Not running";
+
+        /// <summary>Whether the application can be launched from this card.</summary>
+        public bool CanLaunch => !IsRunning && _launch != null;
+
+        /// <summary>Launches a saved application.</summary>
+        [RelayCommand(CanExecute = nameof(CanLaunch))]
+        private async Task LaunchAsync()
+        {
+            try { IsBusy = true; if (_launch != null) await _launch(Name); }
+            catch (Exception ex) { _logger.LogError(ex, "Unable to launch {Name}", Name); }
+            finally { IsBusy = false; }
+        }
 
         /// <summary>
         /// Gets the process ID.
@@ -66,11 +85,12 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <param name="windowService">Window manipulation service.</param>
         /// <param name="audioService">Audio control service.</param>
         /// <param name="logger">Logger instance.</param>
+        /// <param name="launch">Launches a saved application by name.</param>
         public ProcessCardViewModel(
             ProcessInfo processInfo,
             IWindowService windowService,
             IAudioService audioService,
-            ILogger logger)
+            ILogger logger, Func<string, Task<bool>>? launch = null)
         {
             _windowService = windowService ?? throw new ArgumentNullException(nameof(windowService));
             _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
@@ -78,6 +98,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
 
             if (processInfo == null) throw new ArgumentNullException(nameof(processInfo));
 
+            _launch = launch;
             ProcessId = processInfo.ProcessId;
             Name = processInfo.Name;
             WindowTitle = processInfo.WindowTitle;
@@ -89,7 +110,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Toggles the mute state of the process audio.
         /// </summary>
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsRunning))]
         private async Task ToggleMuteAsync()
         {
             try
@@ -121,7 +142,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Minimizes the process window.
         /// </summary>
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsRunning))]
         private async Task MinimizeAsync()
         {
             try
@@ -148,7 +169,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Closes the process window gracefully.
         /// </summary>
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsRunning))]
         private async Task CloseAsync()
         {
             try
@@ -175,7 +196,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// <summary>
         /// Brings the process window to the foreground.
         /// </summary>
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsRunning))]
         private async Task BringToFrontAsync()
         {
             try
@@ -204,6 +225,7 @@ namespace SystemTrayProcessManager.UI.ViewModels
         /// </summary>
         public async Task RefreshAudioStateAsync()
         {
+            if (!IsRunning) return;
             try
             {
                 IsMuted = await _audioService.IsProcessMutedAsync(ProcessId) ?? false;

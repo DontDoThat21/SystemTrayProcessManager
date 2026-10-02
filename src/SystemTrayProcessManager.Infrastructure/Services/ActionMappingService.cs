@@ -217,6 +217,12 @@ namespace SystemTrayProcessManager.Infrastructure.Services
 
             try
             {
+                if (actionType is ProcessActionType.Open or ProcessActionType.ToggleOpenClose)
+                {
+                    var missingTarget = ActionExecutionResult.CreateFailure(actionType, "Select a target application for Open or Open/Close.");
+                    RaiseActionExecuted(missingTarget);
+                    return missingTarget;
+                }
                 // Get the foreground window
                 IntPtr hwnd = NativeMethods.GetForegroundWindow();
 
@@ -270,11 +276,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
             try
             {
                 // Find the target process
-                var targetName = processName.Trim();
-                if (targetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                {
-                    targetName = targetName[..^4];
-                }
+                var targetName = HotkeyConfiguration.ApplicationName(processName);
                 IReadOnlyList<ProcessInfo>? processes = null;
                 ProcessInfo? targetProcess;
                 if (IsAudioAction(actionType))
@@ -287,8 +289,8 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                     processes = await _processService.GetRunningProcessesAsync();
                     targetProcess = processes.FirstOrDefault(p =>
                         p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase));
-                    targetProcess ??= processes.FirstOrDefault(p =>
-                        p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
+                    if (actionType is not (ProcessActionType.Open or ProcessActionType.ToggleOpenClose or ProcessActionType.Close))
+                        targetProcess ??= processes.FirstOrDefault(p => p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
                 }
 
                 // Audio applications may continue running without a visible window.
@@ -310,6 +312,27 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                         p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase))
                         ?? processes.FirstOrDefault(p =>
                             p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (targetProcess == null && actionType is ProcessActionType.Open or ProcessActionType.ToggleOpenClose)
+                {
+                    // A background instance must not be mistaken for a stopped application.
+                    if (FindProcessByName(targetName) != null)
+                    {
+                        var running = ActionExecutionResult.CreateFailure(actionType, "Application is running without a window to focus or close.", processName: targetName);
+                        RaiseActionExecuted(running);
+                        return running;
+                    }
+                    var configuration = await _configService.LoadConfigurationAsync();
+                    var path = configuration.Applications.FirstOrDefault(app =>
+                        app.Key.Equals(targetName, StringComparison.OrdinalIgnoreCase)).Value;
+                    if (string.IsNullOrWhiteSpace(path) && System.IO.Path.IsPathFullyQualified(processName)) path = processName;
+                    var launched = !string.IsNullOrWhiteSpace(path) && await _processService.LaunchAsync(path);
+                    var launchResult = launched
+                        ? ActionExecutionResult.CreateSuccess(actionType, 0, targetName, IntPtr.Zero)
+                        : ActionExecutionResult.CreateFailure(actionType, "Unable to launch application. Use Launch in the workspace to select its executable.", processName: targetName);
+                    RaiseActionExecuted(launchResult);
+                    return launchResult;
                 }
 
                 if (targetProcess == null)
@@ -565,6 +588,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                         }
                         break;
 
+                    case ProcessActionType.ToggleOpenClose:
                     case ProcessActionType.Close:
                         if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
                         {
@@ -595,6 +619,7 @@ namespace SystemTrayProcessManager.Infrastructure.Services
                         }
                         break;
 
+                    case ProcessActionType.Open:
                     case ProcessActionType.BringToFront:
                         if (windowHandle != IntPtr.Zero && _windowService.IsValidWindow(windowHandle))
                         {

@@ -467,3 +467,14 @@ A: System windows (like Task Manager when run elevated) require administrator pr
 ---
 
 *Last updated: 2026-01-29*
+
+
+## Saved applications and launch shortcuts
+
+Applications assigned a custom process-specific hotkey stay in **Your workspace**, even when stopped, when the shortcut is disabled, or after its last shortcut is removed. These saved entries persist across restarts.
+
+A stopped application shows **Not running** and a **Launch** button. The first launch of an older shortcut may ask you to select the matching `.exe`; the app remembers that path. If the executable moves, use Launch to select its new location.
+
+In an application's **Hotkeys** editor, configure **Open**, **Close**, or **Open / Close**. Open launches a stopped application or focuses its existing window. Open / Close (`ToggleOpenClose` in the global editor) launches when stopped and requests a normal window close when running. Applications can still display their usual save prompts or minimize to their own tray on close. These actions do not force termination. Open and Open / Close require a target application in the global editor.
+
+Existing shortcuts are picked up automatically. Applications whose shortcuts were deleted before this feature existed cannot be recovered from an absent record.

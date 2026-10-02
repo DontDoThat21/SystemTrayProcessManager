@@ -68,8 +68,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                TextTrimming="CharacterEllipsis"
                                Margin="0,2,0,0">
-                        <Run Text="PID:"/>
-                        <Run Text="{Binding ProcessId, Mode=OneWay}"/>
+                        <Run Text="{Binding RunningStatus, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Text="{Binding WindowTitle}" 
                                FontSize="{DynamicResource FontSizeSmall}"
@@ -93,9 +92,12 @@
                             Content="Hotkeys" Padding="10,5" Margin="0,0,12,0"
                             ToolTip="Set independent shortcuts for each action of this application"/>
                     
+                    <Button x:Name="LaunchButton" Style="{DynamicResource PrimaryButtonStyle}"
+                            Content="Launch" Command="{Binding LaunchCommand}" Padding="10,5"
+                            Visibility="Collapsed" ToolTip="Launch this saved application"/>
                     <!-- Bring to Front -->
                     <Button Style="{DynamicResource IconButtonStyle}"
-                            Command="{Binding BringToFrontCommand}"
+                            x:Name="BringToFrontButton" Command="{Binding BringToFrontCommand}"
                             ToolTip="Bring to Front"
                             FontFamily="Segoe UI Symbol"
                             Content="&#x2B1A;"
@@ -104,7 +106,7 @@
 
                     <!-- Mute/Unmute -->
                     <Button Style="{DynamicResource IconButtonStyle}"
-                            Command="{Binding ToggleMuteCommand}"
+                            x:Name="ToggleMuteButton" Command="{Binding ToggleMuteCommand}"
                             ToolTip="Toggle mute / unmute"
                             FontFamily="Segoe UI Symbol"
                             Width="28" Height="28"
@@ -115,7 +117,7 @@
 
                     <!-- Minimize -->
                     <Button Style="{DynamicResource IconButtonStyle}"
-                            Command="{Binding MinimizeCommand}"
+                            x:Name="MinimizeButton" Command="{Binding MinimizeCommand}"
                             ToolTip="Minimize"
                             Content="&#x2015;"
                             FontFamily="Segoe UI Symbol"
@@ -124,7 +126,7 @@
 
                     <!-- Close -->
                     <Button Style="{DynamicResource IconButtonDangerStyle}"
-                            Command="{Binding CloseCommand}"
+                            x:Name="CloseButton" Command="{Binding CloseCommand}"
                             ToolTip="Close"
                             Content="&#x2715;"
                             FontFamily="Segoe UI Symbol"
@@ -135,6 +137,13 @@
 
         <!-- Hover Triggers -->
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                <Setter TargetName="LaunchButton" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="BringToFrontButton" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="ToggleMuteButton" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="MinimizeButton" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="CloseButton" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
             <Trigger SourceName="CardBorder" Property="IsMouseOver" Value="True">
                 <Setter TargetName="CardBorder" Property="Background" Value="{DynamicResource CardHoverBrush}"/>
                 <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}"/>

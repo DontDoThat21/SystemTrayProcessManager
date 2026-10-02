@@ -16,6 +16,9 @@ namespace SystemTrayProcessManager.Core.Services
         /// <returns>A read-only list of process information for all visible windowed processes.</returns>
         Task<IReadOnlyList<ProcessInfo>> GetRunningProcessesAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>Launches an existing executable by its full path without shell command interpretation.</summary>
+        Task<bool> LaunchAsync(string executablePath);
+
         /// <summary>
         /// Gets information about a specific process by its identifier.
         /// </summary>

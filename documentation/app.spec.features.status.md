@@ -6,6 +6,24 @@
 **Purpose**: Portfolio project demonstrating advanced Windows API integration, process management, and global hotkey system  
 **Tech Stack**: WPF, C# 12, .NET 8, CommunityToolkit.Mvvm, NAudio, Serilog
 
+## Follow-up: Saved applications and open/close hotkeys (2026-10-02)
+
+**Status**: ⏳ In Progress — implementation and automated validation complete; live GUI/global-key and extended resource checks remain manual.
+**Dependencies**: Existing process discovery, hotkey persistence, and action mapping (implemented).
+**Blockers**: None for code or automated tests.
+
+- [x] Persist applications ever assigned a process-specific shortcut, including disabled shortcuts and applications whose last shortcut is subsequently removed.
+- [x] Merge saved applications into the workspace with a stopped state and Launch button; replace stopped cards on process start and restore them on exit.
+- [x] Remember executable paths; prompt for the matching executable when a legacy path is missing or no longer exists.
+- [x] Add Open and Open / Close (`ToggleOpenClose`) hotkeys. Open focuses an existing window; Open / Close requests graceful close when running and launches when stopped. Both require an explicit application target.
+- [x] Match lifecycle targets exactly, report missing paths/launch failures, and avoid treating a background instance as stopped when executing hotkeys.
+- [x] Validate persistence across service restart, legacy migration, deletion retention, workspace transitions, and action routing. Full suite: **1,322 tests passed**; build: **0 warnings / 0 errors**.
+- [ ] Live GUI/global keyboard verification and extended memory/performance observation.
+
+**Files modified**: Core `HotkeyConfiguration`, `HotkeyConfigItem`, `ProcessActionType`, `IProcessService`; Infrastructure `HotkeyConfigurationService`, `ProcessMonitorService`, `ActionMappingService`; UI `MainViewModel`, `ProcessCardViewModel`, `HotkeyConfigViewModel`, `ProcessHotkeysViewModel`, `MainWindow.xaml.cs`, `ProcessCardStyle.xaml`, `ProcessHotkeysWindow.xaml`; user guide and this status document.
+**Files created**: `SavedApplicationTests.cs`, `SavedApplicationPersistenceTests.cs`.
+**Compatibility**: Existing hotkey files need no conversion. Previously deleted shortcuts cannot be reconstructed if no saved record remains; retention applies to existing and future configured applications.
+
 ## Corrective Task: User-configurable application mute shortcut
 
 **Status**: ⏳ In Progress — implementation, automated tests, rendered UI inspection, and live startup verified; physical audio/shortcut verification pending

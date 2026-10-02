@@ -27,6 +27,11 @@ namespace SystemTrayProcessManager.UI
             InitializeComponent();
 
             DataContext = _viewModel;
+            _viewModel.SelectExecutablePath = () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Applications (*.exe)|*.exe", CheckFileExists = true, Title = "Select application executable" };
+                return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+            };
 
             // Subscribe to window state changes for minimize-to-tray
             StateChanged += OnWindowStateChanged;
@@ -68,13 +73,14 @@ namespace SystemTrayProcessManager.UI
             }
         }
 
-        private void ConfigureHotkeys_Click(object sender, System.Windows.RoutedEventArgs e)
+        private async void ConfigureHotkeys_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             try
             {
                 var window = ((App)Application.Current).Services.GetRequiredService<Views.HotkeyConfigWindow>();
                 window.Owner = this;
                 window.ShowDialog();
+                await _viewModel.RefreshProcessesCommand.ExecuteAsync(null);
             }
             catch (Exception ex)
             {
@@ -92,6 +98,7 @@ namespace SystemTrayProcessManager.UI
                 window.Owner = this;
                 await window.LoadAsync(process.Name);
                 window.ShowDialog();
+                await _viewModel.RefreshProcessesCommand.ExecuteAsync(null);
             }
             catch (Exception ex)
             {
